@@ -1,0 +1,42 @@
+@font-face {
+    font-family: 'custom';
+    src: url('./assets/fonts/Px437_Tandy1K-I_225L.ttf');
+}
+
+body {
+    background-color: black;
+    color: white;
+    font-size: 2rem;
+    font-family: 'custom';
+}
+
+#boot {
+    list-style-type: none;
+    margin: 0;
+    padding: 0 0 1em 0;
+    overflow: hidden;
+    gap: 0.5em;
+
+    &.hidden {
+        display: none;
+    }
+}
+
+.ok {
+    float: right;
+    padding-right: 40%;
+}
+
+#createPrompt {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5em;
+}
+
+#cursor {
+  animation: blink 0.7s step-end infinite;
+}
+
+@keyframes blink {
+  50% { opacity: 0; }
+}

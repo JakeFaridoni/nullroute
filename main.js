@@ -1,6 +1,26 @@
-const typed = new Typed('#test', {
-    strings: ['hello', 'i', 'was', 'just', 'born'],
-    typeSpeed: 50,
-    backSpeed: 50,
-    loop: true,
-});
+import { targets } from './company-names/companies.js';
+import { player, userCreation } from './user-creation/user-creation.js';
+
+class Target {
+    constructor(title, ip) {
+        this.title = title;
+        this.ip = ip;
+    }
+
+    info() {
+        return `${this.title} [${this.ip}]`;
+    }
+}
+
+function random(min, max) {
+    return Math.floor(Math.random() * (max - min + 1)) + min;
+}
+
+function randomIp() {
+    return `${random(100, 255)}.${random(50, 100)}.${random(0, 50)}.${random(0, 255)}`;
+}
+
+const targetList = targets.map(name => new Target(name, randomIp()));
+
+await userCreation();
+console.log(player);
