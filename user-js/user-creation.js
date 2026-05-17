@@ -1,14 +1,88 @@
+export const player = {
+  handle: '', // Unique player handle, allows for multiple saves. Used to log back in. If you forget it you lose your save, remember it
+  id: '', // Unique player ID, allows for multiple saves
+  password: '', // Password used to log back in. If you forget it you lose your save, remember it
+  clearance: 0, // NULLROUTE clearance, higher number = more stuff, harder missions, more money
+  balance: 3000, // Balance of the player in credits, starts at 3000
+  affiliation: 'FREELANCER', // Changes based on player choice, starts at freelancer
+
+  tools: [
+    // Each tool has a name, level 1-5, ram usage in K, file size in MB, and active state (true/false)
+    // Starting tools
+    { name: 'portScan', level: 1, ramUsage: 120, size: 10, active: false },
+    { name: 'passCrack', level: 1, ramUsage: 320, size: 15, active: false },
+    { name: 'connect', level: 1, ramUsage: 0, size: 5, active: false },
+
+    // Purchasable tools
+  ],
+
+  // Each file has a name and size, in MB
+  installedFiles: [
+    { name: 'test-file', size: 3 },
+  ],
+
+  hardware: {
+    // Starting hardware
+    cpu: {
+      name: 'KEMTEC 80486DX',
+      clockSpeed: 33, // Clock speed, in MHZ
+      power: 1,
+    },
+
+    // RAM, in K
+    ram: {
+      totalRAM: 640,
+
+      get usedRAM() {
+        return player.tools
+          .filter(t => t.active)
+          .reduce((sum, t) => sum + t.ramUsage, 0);
+      },
+
+      get availableRAM() {
+        return this.totalRAM - this.usedRAM
+      },
+    },
+
+    storage: {
+      name: 'NORSTORE NS-251',
+      totalSize: 80, // Size, in MB
+
+      get usedSize() { // Size,  in MB
+        const toolsSize = player.tools.reduce((sum, t) => sum + t.size, 0);
+        const filesSize = player.installedFiles.reduce((sum, f) => sum + f.size, 0);
+        return toolsSize + filesSize;
+      },
+
+      get availableSize() { // Size, in MB
+        return this.totalSize - this.usedSize;
+      }
+    },
+
+    bandwidth: {
+      upload: 256, // Speed, in KB/s
+      download: 512, // Speed in KB/s
+    },
+  },
+
+  traceBuffer: 30000, // Time before game over while hacking, in milliseconds
+
+  log: [], // Used for progression and player reference.
+};
+
 import { bootSequence } from '../boot/boot.js';
 
-export const player = {
-  handle: '',
-  id: '',
-  password: '',
-  clearance: 0,
-  balance: 3000,
-  affiliation: 'FREELANCER',
-  tools: [],
-};
+export function formatDate(timestamp) {
+  return new Date(timestamp).toLocaleString('en-GB', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: false,
+  });
+}
 
 function savePlayer(player) {
   const players = loadPlayers();
@@ -136,39 +210,82 @@ export async function userCreation() {
 
     if (key === 'N') {
       printBlank();
+      printLine('─────────────────');
+      printLine('OPERATOR LOG IN');
+      printLine('─────────────────');
+      printBlank();
       const handle = await promptInput('ENTER HANDLE:');
       const existing = findPlayer(handle.toUpperCase());
 
       if (!existing) {
         printBlank();
         printLine('OPERATOR NOT FOUND.');
+        printBlank();
+        await typeLine('FLAGGING UNAUTHORISED ACCESS ATTEMPT', 'LOGGED');
+        await typeLine('ALERTING RELAY NODE', 'DONE');
+        await typeLine('SCRUBBING SESSION DATA', 'DONE');
+        await typeLine('COLLAPSING TUNNEL', 'DONE');
+        await typeLine('REVOKING CERTIFICATES', 'DONE');
+        await typeLine('TERMINATING CONNECTION', 'DONE');
+        printBlank();
+        printLine('CONNECTION TERMINATED.');
+        printBlank();
+        await new Promise(r => setTimeout(r, 2000));
+        window.location.reload();
         return;
       }
 
       const password = await promptInput('ENTER PASSWORD:', true);
 
       if (password !== existing.password) {
-        printBlank();
-        printLine('ACCESS DENIED. INVALID CREDENTIALS.');
-        return;
+        if (password !== existing.password) {
+          printBlank();
+          printLine('ACCESS DENIED. INVALID CREDENTIALS.');
+          printBlank();
+          await typeLine('FLAGGING UNAUTHORISED ACCESS ATTEMPT', 'LOGGED');
+          await typeLine('ALERTING RELAY NODE', 'DONE');
+          await typeLine('SCRUBBING SESSION DATA', 'DONE');
+          await typeLine('COLLAPSING TUNNEL', 'DONE');
+          await typeLine('REVOKING CERTIFICATES', 'DONE');
+          await typeLine('TERMINATING CONNECTION', 'DONE');
+          printBlank();
+          printLine('CONNECTION TERMINATED.');
+          printBlank();
+          await new Promise(r => setTimeout(r, 2000));
+          window.location.reload();
+          return;
+        }
       }
 
-      player.handle = existing.handle;
-      player.id = existing.id;
-      player.password = existing.password;
-      player.clearance = existing.clearance;
-      player.balance = existing.balance;
-      player.affiliation = existing.affiliation;
+      Object.assign(player, existing);
+
+      printBlank();
+
+      printLine(`WELCOME BACK, ${player.handle}`);
 
     } else {
       const handle = await promptInput('ENTER HANDLE:');
       const existing = findPlayer(handle.toUpperCase());
       const password = await promptInput('SET PASSWORD:', true);
-      if(existing && existing.password === password) {
-        typeLine('OPERATOR EXISTS, OVERWRITING', 'DONE');
-      } else {
-        printLine('ACCESS DENIED. INVALID CREDENTIALS.');
-        return;
+      if (existing) {
+        if (existing.password === password) {
+          await typeLine('OPERATOR EXISTS, OVERWRITING', 'DONE');
+        } else {
+          printLine('ACCESS DENIED. INVALID CREDENTIALS.');
+          printBlank();
+          await typeLine('FLAGGING UNAUTHORISED ACCESS ATTEMPT', 'LOGGED');
+          await typeLine('ALERTING RELAY NODE', 'DONE');
+          await typeLine('SCRUBBING SESSION DATA', 'DONE');
+          await typeLine('COLLAPSING TUNNEL', 'DONE');
+          await typeLine('REVOKING CERTIFICATES', 'DONE');
+          await typeLine('TERMINATING CONNECTION', 'DONE');
+          printBlank();
+          printLine('CONNECTION TERMINATED.');
+          printBlank();
+          await new Promise(r => setTimeout(r, 2000));
+          window.location.reload();
+          return;
+        }
       }
       player.handle = handle.toUpperCase();
       player.id = generateId();
@@ -183,11 +300,11 @@ export async function userCreation() {
       await typeLine('CONFIRMING OPERATOR INFORMATION', 'CONFIRMED');
 
       savePlayer(player);
+
+      printBlank();
+
+      printLine(`WELCOME TO NULLROUTE, ${player.handle}`);
     }
-
-    printBlank();
-
-    printLine(`WELCOME TO NULLROUTE, ${player.handle}`);
 
     printBlank();
     printLine('────────────────────────────────');
@@ -213,8 +330,16 @@ export async function userCreation() {
       document.addEventListener('keydown', resolve, { once: true });
     });
 
+    if (!Array.isArray(player.log)) player.log = [];
+
+    player.log.push({
+      date: formatDate(Date.now()),
+      type: 'LOG IN',
+    });
+
+    savePlayer(player);
+
     document.getElementById('createPrompt').remove();
-    console.log(player);
     await bootSequence();
   }, { once: true });
 }

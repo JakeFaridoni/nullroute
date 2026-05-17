@@ -1,4 +1,4 @@
-import { lines } from './lines.js';
+import { getLines } from './lines.js';
 
 const container = document.getElementById('boot');
 
@@ -7,6 +7,8 @@ const MAX_LINES = 40;
 const tickSound = new Audio('./assets/audio/tick.mp3');
 
 export async function bootSequence() {
+  const lines = getLines();
+  
   const ul = document.createElement('ul');
   ul.id = 'boot';
   document.body.appendChild(ul);

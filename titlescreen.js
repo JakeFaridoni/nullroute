@@ -39,7 +39,7 @@ for (const line of lines) {
     const dotsSpan = document.createElement('span');
     pre.appendChild(dotsSpan);
     await new Promise(resolve => {
-      const tw = new Typewriter(dotsSpan, { delay: 100, cursor: '' });
+      const tw = new Typewriter(dotsSpan, { delay: 50, cursor: '' });
       tw.typeString('...').callFunction(resolve).start();
     });
 
@@ -51,8 +51,8 @@ for (const line of lines) {
   }
 }
 
-  const prompt = document.createElement('span');
-  prompt.innerHTML = 'PRESS ANY KEY TO ACCEPT CONNECTION. <span id="cursor">_</span>';
+  const prompt = document.createElement('pre');
+  prompt.innerHTML = '                  PRESS ANY KEY TO ACCEPT CONNECTION<span id="cursor">_</span>';
   container.appendChild(prompt);
 
   await new Promise(resolve => {
