@@ -25,33 +25,33 @@ export async function bootSequence() {
   const container = ul;
 
   for (const line of lines) {
-    const li = document.createElement('li');
-    container.appendChild(li);
+    const pre = document.createElement('pre');
+    container.appendChild(pre);
 
     while (container.children.length > getMaxLines(container)) {
       container.removeChild(container.firstChild);
     }
 
     if (!line.text && !line.dots) {
-      li.innerHTML = '&nbsp;';
+      pre.innerHTML = '&nbsp;';
       continue;
     }
 
     const textSpan = document.createElement('span');
     textSpan.textContent = line.text;
-    li.appendChild(textSpan);
+    pre.appendChild(textSpan);
     playSound(tickSound);
 
     if (line.dots) {
       const dotsSpan = document.createElement('span');
-      li.appendChild(dotsSpan);
+      pre.appendChild(dotsSpan);
       await typeDots(dotsSpan);
     }
 
     if (line.value) {
-      li.innerHTML += `<span class="ok">  ${line.value}</span>`;
+      pre.innerHTML += `<span class="ok">  ${line.value}</span>`;
     } else if (line.ok) {
-      li.innerHTML += '<span class="ok">  [ OK ]</span>';
+      pre.innerHTML += '<span class="ok">  [ OK ]</span>';
     }
   }
 }

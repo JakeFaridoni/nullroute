@@ -5,6 +5,7 @@
 
 * {
     cursor: none;
+    user-select: none;
 }
 
 body {

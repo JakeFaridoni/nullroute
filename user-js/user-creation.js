@@ -218,10 +218,18 @@ export async function userCreation() {
     document.getElementById('registerLine').textContent += key;
 
     if (key === 'N') {
+      await typeLine('MOVING TO LOGIN', 'FAIL');
+      await typeLine('MOVING TO LOGIN', 'FAIL');
+      await typeLine('MOVING TO LOGIN', 'SUCCESS');
+      await new Promise(r => setTimeout(r, 1000));
+      container.innerHTML = '';
       printBlank();
-      printLine('─────────────────');
+      printLine('────────────────────────────────');
+      printLine('NULLROUTE SERVICES');
+      printLine('ANONYMOUS CONTRACT BROKERAGE');
+      printBlank();
       printLine('OPERATOR LOG IN');
-      printLine('─────────────────');
+      printLine('────────────────────────────────');
       printBlank();
       const handle = await promptInput('ENTER HANDLE:');
       const save = loadSave(handle.toUpperCase());
