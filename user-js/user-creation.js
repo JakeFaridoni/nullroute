@@ -1,3 +1,9 @@
+
+import { bootSequence, clackSound } from '../boot/boot.js';
+import { tickSound, playSound } from '../boot/boot.js';
+import { saveGame, loadSave, loadSaves, verifyPassword } from '../saves.js';
+import { targets, assignIps } from '../company-names/companies.js';
+
 export const player = {
   handle: '', // Unique player handle, allows for multiple saves. Used to log back in. If you forget it you lose your save, remember it
   id: '', // Unique player ID, allows for multiple saves
@@ -70,7 +76,7 @@ export const player = {
   log: [], // Used for progression and player reference.
 };
 
-import { bootSequence } from '../boot/boot.js';
+export let sessionTargets = [];
 
 export function formatDate(timestamp) {
   return new Date(timestamp).toLocaleString('en-GB', {
@@ -84,20 +90,8 @@ export function formatDate(timestamp) {
   });
 }
 
-function savePlayer(player) {
-  const players = loadPlayers();
-  players[player.handle] = player;
-  localStorage.setItem('nullroute_players', JSON.stringify(players));
-}
 
-function loadPlayers() {
-  const data = localStorage.getItem('nullroute_players');
-  return data ? JSON.parse(data) : {};
-}
 
-function findPlayer(handle) {
-  return loadPlayers()[handle.toUpperCase()] || null;
-}
 
 export async function userCreation() {
 
@@ -112,14 +106,6 @@ export async function userCreation() {
       `;
 
   const container = document.getElementById('createPrompt');
-
-  const tickSound = new Audio('./assets/audio/tick.mp3');
-
-  function playTick() {
-    const click = tickSound.cloneNode();
-    click.volume = 0.5;
-    click.play();
-  }
 
   function printLine(text) {
     const pre = document.createElement('pre');
@@ -168,7 +154,7 @@ export async function userCreation() {
       let value = '';
 
       const handler = (e) => {
-        if (!['Shift', 'Control'].includes(e.key)) playTick();
+        if (!['Shift', 'Control'].includes(e.key)) playSound(clackSound);
         if (e.key === 'Enter' && value.length > 0) {
           cursor.remove();
           document.removeEventListener('keydown', handler);
@@ -191,8 +177,8 @@ export async function userCreation() {
   }
 
   function generateId() {
-    const players = loadPlayers();
-    const usedIds = Object.values(players).map(p => p.id);
+    const saves = loadSaves();
+    const usedIds = Object.values(saves).map(s => s.player.id);
     let id;
     do {
       id = `NR-${Math.floor(1000 + Math.random() * 9000)}`;
@@ -200,8 +186,31 @@ export async function userCreation() {
     return id;
   }
 
+  async function failureSequence(error) {
+    const steps = [
+      { action: 'FLAGGING UNAUTHORISED ACCESS ATTEMPT', status: 'LOGGED' },
+      { action: 'ALERTING RELAY NODE', status: 'DONE' },
+      { action: 'SCRUBBING SESSION DATA', status: 'DONE' },
+      { action: 'COLLAPSING TUNNEL', status: 'DONE' },
+      { action: 'REVOKING CERTIFICATES', status: 'DONE' },
+      { action: 'TERMINATING CONNECTION', status: 'DONE' },
+    ];
+
+    printBlank();
+    printLine(error);
+    printBlank();
+    for (const { action, status } of steps) {
+      await typeLine(action, status);
+    }
+    printBlank();
+    printLine('CONNECTION TERMINATED.');
+    printBlank();
+    await new Promise(r => setTimeout(r, 2000));
+    window.location.reload();
+  }
+
   document.addEventListener('keydown', async (e) => {
-    playTick();
+    playSound(clackSound);
     const key = e.key.toUpperCase();
     if (!['Y', 'N'].includes(key)) return;
 
@@ -215,44 +224,19 @@ export async function userCreation() {
       printLine('─────────────────');
       printBlank();
       const handle = await promptInput('ENTER HANDLE:');
-      const existing = findPlayer(handle.toUpperCase());
+      const save = loadSave(handle.toUpperCase());
 
-      if (!existing) {
-        printBlank();
-        printLine('OPERATOR NOT FOUND.');
-        printBlank();
-        await typeLine('FLAGGING UNAUTHORISED ACCESS ATTEMPT', 'LOGGED');
-        await typeLine('ALERTING RELAY NODE', 'DONE');
-        await typeLine('SCRUBBING SESSION DATA', 'DONE');
-        await typeLine('COLLAPSING TUNNEL', 'DONE');
-        await typeLine('REVOKING CERTIFICATES', 'DONE');
-        await typeLine('TERMINATING CONNECTION', 'DONE');
-        printBlank();
-        printLine('CONNECTION TERMINATED.');
-        printBlank();
-        await new Promise(r => setTimeout(r, 2000));
-        window.location.reload();
+      if (!save) {
+        await failureSequence('OPERATOR NOT FOUND');
         return;
       }
 
+      const existing = save.player;
       const password = await promptInput('ENTER PASSWORD:', true);
 
-      if (password !== existing.password) {
-        if (password !== existing.password) {
-          printBlank();
-          printLine('ACCESS DENIED. INVALID CREDENTIALS.');
-          printBlank();
-          await typeLine('FLAGGING UNAUTHORISED ACCESS ATTEMPT', 'LOGGED');
-          await typeLine('ALERTING RELAY NODE', 'DONE');
-          await typeLine('SCRUBBING SESSION DATA', 'DONE');
-          await typeLine('COLLAPSING TUNNEL', 'DONE');
-          await typeLine('REVOKING CERTIFICATES', 'DONE');
-          await typeLine('TERMINATING CONNECTION', 'DONE');
-          printBlank();
-          printLine('CONNECTION TERMINATED.');
-          printBlank();
-          await new Promise(r => setTimeout(r, 2000));
-          window.location.reload();
+      if (!await verifyPassword(password, existing.password)) {
+        if (!await verifyPassword(password, existing.password)) {
+          await failureSequence('ACCESS DENIED. INVALID CREDENTIALS');
           return;
         }
       }
@@ -265,26 +249,15 @@ export async function userCreation() {
 
     } else {
       const handle = await promptInput('ENTER HANDLE:');
-      const existing = findPlayer(handle.toUpperCase());
+      const existingSave = loadSave(handle.toUpperCase());
+      const existing = existingSave ? existingSave.player : null;
       const password = await promptInput('SET PASSWORD:', true);
       if (existing) {
-        if (existing.password === password) {
+        if (await verifyPassword(password, existing.password)) {
           await typeLine('OPERATOR EXISTS, OVERWRITING', 'DONE');
         } else {
-          printLine('ACCESS DENIED. INVALID CREDENTIALS.');
-          printBlank();
-          await typeLine('FLAGGING UNAUTHORISED ACCESS ATTEMPT', 'LOGGED');
-          await typeLine('ALERTING RELAY NODE', 'DONE');
-          await typeLine('SCRUBBING SESSION DATA', 'DONE');
-          await typeLine('COLLAPSING TUNNEL', 'DONE');
-          await typeLine('REVOKING CERTIFICATES', 'DONE');
-          await typeLine('TERMINATING CONNECTION', 'DONE');
-          printBlank();
-          printLine('CONNECTION TERMINATED.');
-          printBlank();
-          await new Promise(r => setTimeout(r, 2000));
-          window.location.reload();
-          return;
+          await typeLine('OPERATOR EXISTS, OVERWRITING', 'FAIL');
+          await failureSequence('ACCESS DENIED. INVALID CREDENTIALS');
         }
       }
       player.handle = handle.toUpperCase();
@@ -299,7 +272,8 @@ export async function userCreation() {
       await typeLine('BURNING REGISTRATION TRAIL', 'BURNED');
       await typeLine('CONFIRMING OPERATOR INFORMATION', 'CONFIRMED');
 
-      savePlayer(player);
+      sessionTargets = assignIps(targets);
+      await saveGame(player, sessionTargets);
 
       printBlank();
 
@@ -331,13 +305,11 @@ export async function userCreation() {
     });
 
     if (!Array.isArray(player.log)) player.log = [];
+    player.log.push({ date: formatDate(Date.now()), type: 'LOG IN' });
 
-    player.log.push({
-      date: formatDate(Date.now()),
-      type: 'LOG IN',
-    });
-
-    savePlayer(player);
+    const save = loadSave(player.handle);
+    sessionTargets = save ? save.targets : assignIps(targets);
+    await saveGame(player, sessionTargets);
 
     document.getElementById('createPrompt').remove();
     await bootSequence();

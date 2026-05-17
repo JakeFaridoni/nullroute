@@ -1,10 +1,20 @@
 import { getLines } from './lines.js';
 
-const container = document.getElementById('boot');
+export function getMaxLines(container) {
+  const li = container.firstChild;
+  if (!li) return 20;
+  const lineHeight = li.getBoundingClientRect().height;
+  return Math.floor(window.innerHeight / lineHeight) - 2;
+}
 
-const MAX_LINES = 40;
+export const tickSound = new Audio('./assets/audio/tick.mp3');
+export function playSound(sound) {
+  const click = sound.cloneNode();
+  click.volume = 0.5;
+  click.play();
+}
 
-const tickSound = new Audio('./assets/audio/tick.mp3');
+export const clackSound = new Audio('./assets/audio/clack.mp3');
 
 export async function bootSequence() {
   const lines = getLines();
@@ -18,7 +28,7 @@ export async function bootSequence() {
     const li = document.createElement('li');
     container.appendChild(li);
 
-    while (container.children.length > MAX_LINES) {
+    while (container.children.length > getMaxLines(container)) {
       container.removeChild(container.firstChild);
     }
 
@@ -30,7 +40,7 @@ export async function bootSequence() {
     const textSpan = document.createElement('span');
     textSpan.textContent = line.text;
     li.appendChild(textSpan);
-    playTick();
+    playSound(tickSound);
 
     if (line.dots) {
       const dotsSpan = document.createElement('span');
@@ -53,10 +63,4 @@ function typeDots(el) {
       .callFunction(resolve)
       .start();
   });
-}
-
-function playTick() {
-  const click = tickSound.cloneNode();
-  click.volume = 0.5;
-  click.play();
 }

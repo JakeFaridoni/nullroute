@@ -1,3 +1,6 @@
+import { clackSound, getMaxLines } from "./boot/boot.js";
+import { tickSound, playSound } from "./boot/boot.js";
+
 export async function titleScreen() {
   document.body.innerHTML = `<div id="title"></div>`;
   const container = document.getElementById('title');
@@ -28,6 +31,10 @@ for (const line of lines) {
   const pre = document.createElement('pre');
   container.appendChild(pre);
 
+  while(container.children.length > getMaxLines(container)) {
+    container.removeChild(container.firstChild);
+  }
+
   if (!line.text) {
     pre.innerHTML = '&nbsp;';
     continue;
@@ -48,15 +55,23 @@ for (const line of lines) {
     } else if (line.ok) {
       pre.innerHTML += '<span class="ok">  [ OK ]</span>';
     }
+    playSound(tickSound);
   }
 }
 
   const prompt = document.createElement('pre');
-  prompt.innerHTML = '                  PRESS ANY KEY TO ACCEPT CONNECTION<span id="cursor">_</span>';
+  prompt.textContent = '                  PRESS ANY KEY TO ACCEPT CONNECTION';
+
+  const cursor = document.createElement('span');
+  cursor.id = 'cursor';
+  cursor.textContent = '_';
+
+  prompt.appendChild(cursor);
   container.appendChild(prompt);
 
   await new Promise(resolve => {
     document.addEventListener('keydown', (e) => {
+      playSound(clackSound);
       document.documentElement.requestFullscreen();
       resolve();
     }, { once: true });
