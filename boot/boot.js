@@ -54,6 +54,21 @@ export async function bootSequence() {
       pre.innerHTML += '<span class="ok">  [ OK ]</span>';
     }
   }
+
+  container.removeChild(container.firstChild);
+  await new Promise(resolve => {
+      const span = document.createElement('span');
+      span.textContent = 'PRESS ANY KEY TO LOAD INTO USER ENVIRONMENT. ';
+      container.appendChild(span);
+
+      const cursor = document.createElement('span');
+      cursor.textContent = '_';
+      cursor.id = 'cursor';
+      cursor.style.animation = 'blink 0.7s step-end infinite';
+      span.appendChild(cursor);
+
+      document.addEventListener('keydown', resolve, { once: true });
+    });
 }
 
 function typeDots(el) {

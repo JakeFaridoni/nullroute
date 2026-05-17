@@ -112,6 +112,9 @@ export function getLines() {
     { text: 'ALL SUBSYSTEMS NOMINAL' },
     { text: '' },
     { text: 'LOADING USER ENVIRONMENT', dots: true, value: '[ READY ]' },
+    { text: '' },
+    { text: '' },
+    { text: '' },
   ];
   
 }

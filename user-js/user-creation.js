@@ -79,7 +79,7 @@ export const player = {
 export let sessionTargets = [];
 
 export function formatDate(timestamp) {
-  return new Date(timestamp).toLocaleString('en-GB', {
+  return new Date(timestamp).toLocaleString('en-US', {
     day: '2-digit',
     month: '2-digit',
     year: 'numeric',
@@ -218,9 +218,9 @@ export async function userCreation() {
     document.getElementById('registerLine').textContent += key;
 
     if (key === 'N') {
-      await typeLine('MOVING TO LOGIN', 'FAIL');
-      await typeLine('MOVING TO LOGIN', 'FAIL');
-      await typeLine('MOVING TO LOGIN', 'SUCCESS');
+      printBlank();
+      await typeLine('REJECTING NEW OPERATOR REQUEST', 'DONE');
+      await typeLine('REROUTING TO AUTHENTICATION NODE', 'DONE');
       await new Promise(r => setTimeout(r, 1000));
       container.innerHTML = '';
       printBlank();
@@ -228,6 +228,7 @@ export async function userCreation() {
       printLine('NULLROUTE SERVICES');
       printLine('ANONYMOUS CONTRACT BROKERAGE');
       printBlank();
+      printLine('NULLROUTE AUTH NODE');
       printLine('OPERATOR LOG IN');
       printLine('────────────────────────────────');
       printBlank();
@@ -286,6 +287,9 @@ export async function userCreation() {
       printBlank();
 
       printLine(`WELCOME TO NULLROUTE, ${player.handle}`);
+
+      if (!Array.isArray(player.log)) player.log = [];
+      player.log.push({ date: formatDate(Date.now()), type: 'DOWNLOAD', file: 'PORTSCAN v1, PASSCRACK v1, CONNECT v1' });
     }
 
     printBlank();
@@ -293,6 +297,7 @@ export async function userCreation() {
     printLine(`ID:                ${player.id}`);
     printLine(`HANDLE:            ${player.handle}`);
     printLine(`CLEARANCE:         TIER ${player.clearance}`);
+    printLine(`AFFILIATION:       ${player.affiliation}`);
     printLine(`BALANCE:           ${player.balance} CR`);
     printLine('RELAY NODE:        [ ENCRYPTED ]');
     printLine('────────────────────────────────');
