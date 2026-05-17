@@ -3,6 +3,10 @@
     src: url('./assets/fonts/Px437_Tandy1K-I_225L.ttf');
 }
 
+* {
+    cursor: none;
+}
+
 body {
     background-color: black;
     color: white;
@@ -24,7 +28,7 @@ body {
 
 .ok {
     float: right;
-    padding-right: 40%;
+    padding-right: 5em;
 }
 
 #createPrompt {
@@ -39,4 +43,16 @@ body {
 
 @keyframes blink {
   50% { opacity: 0; }
+}
+
+#title {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5em;
+  padding: 2rem;
+}
+
+pre {
+    margin: 0;
+    font-family: 'custom';
 }

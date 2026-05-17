@@ -1,5 +1,6 @@
 import { targets } from './company-names/companies.js';
-import { player, userCreation } from './user-creation/user-creation.js';
+import { titleScreen } from './titlescreen.js';
+import { player, userCreation } from './user-js/user-creation.js';
 
 class Target {
     constructor(title, ip) {
@@ -22,5 +23,5 @@ function randomIp() {
 
 const targetList = targets.map(name => new Target(name, randomIp()));
 
+await titleScreen();
 await userCreation();
-console.log(player);

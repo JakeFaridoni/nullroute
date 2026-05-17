@@ -3,9 +3,27 @@ import { bootSequence } from '../boot/boot.js';
 export const player = {
   handle: '',
   id: '',
+  password: '',
   clearance: 0,
-  balance: 0,
+  balance: 3000,
+  affiliation: 'FREELANCER',
+  tools: [],
 };
+
+function savePlayer(player) {
+  const players = loadPlayers();
+  players[player.handle] = player;
+  localStorage.setItem('nullroute_players', JSON.stringify(players));
+}
+
+function loadPlayers() {
+  const data = localStorage.getItem('nullroute_players');
+  return data ? JSON.parse(data) : {};
+}
+
+function findPlayer(handle) {
+  return loadPlayers()[handle.toUpperCase()] || null;
+}
 
 export async function userCreation() {
 
@@ -15,7 +33,7 @@ export async function userCreation() {
       <span>NULLROUTE SERVICES</span>
       <span>ANONYMOUS CONTRACT BROKERAGE</span>
       <span>────────────────────────────────</span>
-      <span id="registerLine">REGISTER NEW OPERATOR? (Y/N): <span id="cursor">_</span></span>
+      <span id="registerLine">REGISTER AS NEW OPERATOR? (Y/N): <span id="cursor">_</span></span>
     </div>
       `;
 
@@ -30,9 +48,9 @@ export async function userCreation() {
   }
 
   function printLine(text) {
-    const span = document.createElement('span');
-    span.textContent = text;
-    container.appendChild(span);
+    const pre = document.createElement('pre');
+    pre.textContent = text;
+    container.appendChild(pre);
   }
 
   function printBlank() {
@@ -98,10 +116,17 @@ export async function userCreation() {
     });
   }
 
-  player.id =  `NR-${Math.floor(1000 + Math.random() * 9000)}`;
+  function generateId() {
+    const players = loadPlayers();
+    const usedIds = Object.values(players).map(p => p.id);
+    let id;
+    do {
+      id = `NR-${Math.floor(1000 + Math.random() * 9000)}`;
+    } while (usedIds.includes(id));
+    return id;
+  }
 
   document.addEventListener('keydown', async (e) => {
-    document.documentElement.requestFullscreen();
     playTick();
     const key = e.key.toUpperCase();
     if (!['Y', 'N'].includes(key)) return;
@@ -111,30 +136,66 @@ export async function userCreation() {
 
     if (key === 'N') {
       printBlank();
-      printLine('REGISTRATION ABORTED.');
-      return;
+      const handle = await promptInput('ENTER HANDLE:');
+      const existing = findPlayer(handle.toUpperCase());
+
+      if (!existing) {
+        printBlank();
+        printLine('OPERATOR NOT FOUND.');
+        return;
+      }
+
+      const password = await promptInput('ENTER PASSWORD:', true);
+
+      if (password !== existing.password) {
+        printBlank();
+        printLine('ACCESS DENIED. INVALID CREDENTIALS.');
+        return;
+      }
+
+      player.handle = existing.handle;
+      player.id = existing.id;
+      player.password = existing.password;
+      player.clearance = existing.clearance;
+      player.balance = existing.balance;
+      player.affiliation = existing.affiliation;
+
+    } else {
+      const handle = await promptInput('ENTER HANDLE:');
+      const existing = findPlayer(handle.toUpperCase());
+      const password = await promptInput('SET PASSWORD:', true);
+      if(existing && existing.password === password) {
+        typeLine('OPERATOR EXISTS, OVERWRITING', 'DONE');
+      } else {
+        printLine('ACCESS DENIED. INVALID CREDENTIALS.');
+        return;
+      }
+      player.handle = handle.toUpperCase();
+      player.id = generateId();
+      player.password = password;
+
+      printBlank();
+
+      await typeLine('VERIFYING HANDLE AVAILABILITY', 'AVAILABLE');
+      await typeLine('SCRUBBING REGISTRATION METADATA', 'SCRUBBED');
+      await typeLine('ALLOCATING ANONYMOUS RELAY NODE', 'READY');
+      await typeLine('BURNING REGISTRATION TRAIL', 'BURNED');
+      await typeLine('CONFIRMING OPERATOR INFORMATION', 'CONFIRMED');
+
+      savePlayer(player);
     }
 
     printBlank();
 
-    const handle = await promptInput('ENTER A HANDLE:');
-    player.handle = handle.toUpperCase();
-    const password = await promptInput('SET PASSWORD:', true);
-
-    printBlank();
-
-    await typeLine('VERIFYING HANDLE AVAILABILITY', 'CLEAR');
-    await typeLine('SCRUBBING REGISTRATION METADATA', 'OK');
-    await typeLine('ALLOCATING ANONYMOUS RELAY NODE', 'OK');
-    await typeLine('BURNING REGISTRATION TRAIL', 'OK');
+    printLine(`WELCOME TO NULLROUTE, ${player.handle}`);
 
     printBlank();
     printLine('────────────────────────────────');
-    printLine(`OPERATOR ID:        ${player.id}`);
-    printLine(`HANDLE:             ${handle.toUpperCase()}`);
-    printLine('CLEARANCE:          TIER 0');
-    printLine('BALANCE:            0 CR');
-    printLine('RELAY NODE:         [ENCRYPTED]');
+    printLine(`ID:                ${player.id}`);
+    printLine(`HANDLE:            ${player.handle}`);
+    printLine(`CLEARANCE:         TIER ${player.clearance}`);
+    printLine(`BALANCE:           ${player.balance} CR`);
+    printLine('RELAY NODE:        [ ENCRYPTED ]');
     printLine('────────────────────────────────');
     printBlank();
 

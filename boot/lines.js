@@ -88,5 +88,5 @@ export const lines = [
   { text: '' },
   { text: 'ALL SUBSYSTEMS NOMINAL' },
   { text: '' },
-  { text: 'LOADING ENVIRONMENT', dots: true },
+  { text: 'LOADING ENVIRONMENT', dots: true, ok: true },
 ];
