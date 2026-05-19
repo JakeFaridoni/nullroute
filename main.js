@@ -1,6 +1,4 @@
 import { targets } from './companies.js';
-import { _ls_seedDefaultSave } from './saves.js';
-import { apiSaveGame } from './api.js';
 import { titleScreen } from './titlescreen.js';
 import { formatDate, userCreation, player, sessionTargets, sendToInbox } from './user-creation.js';
 import { generateContracts, startContractRefresh } from './contracts.js';
@@ -8,7 +6,6 @@ import { generateContracts, startContractRefresh } from './contracts.js';
 import { initTerminal } from './terminal.js';
 import { initInbox, render } from './inbox.js';
 import { beepSound, playSound } from './boot/boot.js';
-// import { initIpTracker } from './iptracker.js';
 import { welcome, initContract, friend, spam, nixReportAshOne, nixReportEmberOne, nixMessageIgnis } from './story.js';
 
 export const ambientNoise = new Audio('./assets/audio/ambient-noise.mp3');
@@ -18,7 +15,6 @@ ambientNoise.loop = true;
 BGM.loop = true;
 
 await titleScreen();
-_ls_seedDefaultSave();
 await userCreation();
 
 document.body.innerHTML = `
@@ -86,7 +82,6 @@ document.addEventListener('mousemove', e => {
 });
 
 initTerminal(document.getElementById('terminal-content'));
-// initIpTracker(document.getElementById('tracker-content'));
 initInbox(document.getElementById('inbox-content'));
 
 await sendToInbox(nixReportAshOne, 2000);

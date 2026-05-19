@@ -1,43 +1,34 @@
-
 import { beepSound, bootSequence, clackSound, messageSound } from '../boot/boot.js';
 import { tickSound, playSound } from '../boot/boot.js';
 import { apiSaveGame, apiLogin, apiHandleExists, apiRegister, apiLoadSave } from '../api.js';
-import { _ls_loadSaves } from './saves.js';
 import { targets, assignIps } from './companies.js';
 import { render } from '../inbox.js';
 import { BGM } from '../main.js';
 
 export const player = {
-  handle: '', // Unique player handle, allows for multiple saves. Used to log back in. If you forget it you lose your save, remember it
-  id: '', // Unique player ID, allows for multiple saves
-  password: '', // Password used to log back in. If you forget it you lose your save, remember it
-  clearance: 0, // NULLROUTE clearance, higher number = more stuff, harder missions, more money
-  balance: 3000, // Balance of the player in credits, starts at 3000
-  affiliation: 'FREELANCER', // Changes based on player choice, starts at freelancer
-  inbox: [], // Player inbox to manage messages / contracts
+  handle: '',
+  id: '',
+  password: '',
+  clearance: 0,
+  balance: 3000,
+  affiliation: 'FREELANCER',
+  inbox: [],
 
   tools: [
-    // Each tool has a name, level 1-5, ram usage in K, file size in MB, and active state (true/false)
-    // Starting tools
-    { name: 'portScan', level: 1, ramUsage: 120, size: 10, active: false },
+    { name: 'portScan',  level: 1, ramUsage: 120, size: 10, active: false },
     { name: 'passCrack', level: 1, ramUsage: 320, size: 15, active: false },
-    { name: 'connect', level: 1, ramUsage: 0, size: 5, active: false },
-
-    // Purchasable tools
+    { name: 'connect',   level: 1, ramUsage: 0,   size: 5,  active: false },
   ],
 
-  // Each file has a name, contents (if .txt) and size, in MB
   installedFiles: [],
 
   hardware: {
-    // Starting hardware
     cpu: {
       name: 'KEMTEC 80486DX',
-      clockSpeed: 33, // Clock speed, in MHZ
+      clockSpeed: 33,
       power: 1,
     },
 
-    // RAM, in K
     ram: {
       totalRAM: 640,
 
@@ -48,42 +39,39 @@ export const player = {
       },
 
       get availableRAM() {
-        return this.totalRAM - this.usedRAM
+        return this.totalRAM - this.usedRAM;
       },
     },
 
     storage: {
       name: 'NORSTORE NS-251',
-      totalSize: 80, // Size, in MB
+      totalSize: 80,
 
-      get usedSize() { // Size,  in MB
+      get usedSize() {
         const toolsSize = player.tools.reduce((sum, t) => sum + t.size, 0);
         const filesSize = player.installedFiles.reduce((sum, f) => sum + f.size, 0);
         return toolsSize + filesSize;
       },
 
-      get availableSize() { // Size, in MB
+      get availableSize() {
         return this.totalSize - this.usedSize;
       }
     },
 
     bandwidth: {
-      upload: 256, // Speed, in KB/s
-      download: 512, // Speed in KB/s
+      upload: 256,
+      download: 512,
     },
   },
 
-  traceBuffer: 30000, // Time before game over while hacking, in milliseconds
-
-  log: [], // Used for progression and player reference.
+  traceBuffer: 30000,
+  log: [],
 };
 
 export async function sendToInbox(item, ms = 0) {
-  if (player.inbox.some(i => (i.id && i.id === item.id) || (i.title && i.title === item.title))) return; // return if in inbox already
-
-  if ((item.type === 'nix-message' && player.handle !== 'NIX') || (item.type !== 'nix-message' && player.handle === 'NIX')) return; // filter nix-messages
-
-  if(player.handle === 'ADMIN') return; // filter all messages for admin
+  if (player.inbox.some(i => (i.id && i.id === item.id) || (i.title && i.title === item.title))) return;
+  if ((item.type === 'nix-message' && player.handle !== 'NIX') || (item.type !== 'nix-message' && player.handle === 'NIX')) return;
+  if (player.handle === 'ADMIN') return;
 
   if (ms) await new Promise(r => setTimeout(r, 5000));
   playSound(messageSound);
@@ -96,9 +84,7 @@ export let sessionTargets = [];
 
 export function formatDate(timestamp) {
   const date = new Date(timestamp);
-
   date.setFullYear(1999);
-
   return date.toLocaleString('en-US', {
     day: '2-digit',
     month: '2-digit',
@@ -109,9 +95,6 @@ export function formatDate(timestamp) {
     hour12: false,
   });
 }
-
-
-
 
 export async function userCreation() {
 
@@ -125,7 +108,7 @@ export async function userCreation() {
       <span>────────────────────────────────</span>
       <span id="registerLine">REGISTER AS NEW OPERATOR? (Y/N): <span id="cursor">_</span></span>
     </div>
-      `;
+  `;
 
   const container = document.getElementById('createPrompt');
 
@@ -198,26 +181,21 @@ export async function userCreation() {
     });
   }
 
+  // ID is now just a random NR-XXXX — the DB unique constraint catches
+  // collisions, and we no longer have a local saves list to check against.
   function generateId() {
-    const saves = _ls_loadSaves();
-    const usedIds = Object.values(saves).map(s => s.player.id);
-    let id;
-    do {
-      id = `NR-${Math.floor(1000 + Math.random() * 9000)}`;
-    } while (usedIds.includes(id));
-    return id;
+    return `NR-${Math.floor(1000 + Math.random() * 9000)}`;
   }
 
   async function failureSequence(error) {
     const steps = [
       { action: 'FLAGGING UNAUTHORISED ACCESS ATTEMPT', status: 'LOGGED' },
-      { action: 'ALERTING RELAY NODE', status: 'DONE' },
-      { action: 'SCRUBBING SESSION DATA', status: 'DONE' },
-      { action: 'COLLAPSING TUNNEL', status: 'DONE' },
-      { action: 'REVOKING CERTIFICATES', status: 'DONE' },
-      { action: 'TERMINATING CONNECTION', status: 'DONE' },
+      { action: 'ALERTING RELAY NODE',                  status: 'DONE'   },
+      { action: 'SCRUBBING SESSION DATA',               status: 'DONE'   },
+      { action: 'COLLAPSING TUNNEL',                    status: 'DONE'   },
+      { action: 'REVOKING CERTIFICATES',                status: 'DONE'   },
+      { action: 'TERMINATING CONNECTION',               status: 'DONE'   },
     ];
-
 
     printBlank();
     printLine(error);
@@ -250,30 +228,34 @@ export async function userCreation() {
     printLine('OPERATOR LOG IN');
     printLine('────────────────────────────────');
     printBlank();
+
     const handle = await promptInput('ENTER HANDLE:');
     playSound(tickSound);
     const handleInput = handle.toUpperCase();
- 
-    // Check operator exists before prompting for password (same UX as before)
+
     const { exists } = await apiHandleExists(handleInput);
     if (!exists) {
       await failureSequence('OPERATOR NOT FOUND');
       return;
     }
- 
+
     const password = await promptInput('ENTER PASSWORD:', true);
     playSound(tickSound);
- 
+
     const loginResult = await apiLogin(handleInput, password);
     if (!loginResult.ok) {
       await failureSequence('ACCESS DENIED. INVALID CREDENTIALS');
       return;
     }
- 
+
     Object.assign(player, loginResult.player);
 
-    printBlank();
+    // Restore session targets from the server save
+    sessionTargets = loginResult.targets?.length
+      ? loginResult.targets
+      : assignIps(targets);
 
+    printBlank();
     printLine(`WELCOME BACK, ${player.handle}`);
   }
 
@@ -296,15 +278,19 @@ export async function userCreation() {
         playSound(tickSound);
         const password = await promptInput('SET PASSWORD:', true);
         playSound(tickSound);
- 
+
         const { exists: handleTaken } = await apiHandleExists(handle.toUpperCase());
+
         if (handleTaken) {
-          // Handle exists — treat as a login attempt with the supplied password
+          // Handle exists — treat as login attempt with supplied password
           const loginResult = await apiLogin(handle.toUpperCase(), password);
           if (loginResult.ok) {
             await typeLine('OPERATOR EXISTS, STARTING LOG IN', 'DONE');
             playSound(tickSound);
             Object.assign(player, loginResult.player);
+            sessionTargets = loginResult.targets?.length
+              ? loginResult.targets
+              : assignIps(targets);
           } else {
             await typeLine('OPERATOR EXISTS, STARTING LOG IN', 'FAIL');
             playSound(tickSound);
@@ -312,12 +298,15 @@ export async function userCreation() {
             return;
           }
         } else {
+          // New operator — set up player object then register
           player.handle = handle.toUpperCase();
           player.id = generateId();
           player.password = password;
 
-          printBlank();
+          if (!Array.isArray(player.log)) player.log = [];
+          player.log.push({ date: formatDate(Date.now()), type: 'REGISTRATION' });
 
+          printBlank();
           await typeLine('VERIFYING HANDLE AVAILABILITY', 'AVAILABLE');
           playSound(tickSound);
           await typeLine('SCRUBBING REGISTRATION METADATA', 'SCRUBBED');
@@ -326,20 +315,20 @@ export async function userCreation() {
           playSound(tickSound);
           await typeLine('BURNING REGISTRATION TRAIL', 'BURNED');
           playSound(tickSound);
-
           printBlank();
-
           printLine(`WELCOME TO NULLROUTE, ${player.handle}`);
 
+          sessionTargets = assignIps(targets);
+
+          const registerResult = await apiRegister(player.handle, player.password, player, sessionTargets);
+          if (!registerResult.ok) {
+            await failureSequence(`REGISTRATION FAILED: ${registerResult.reason}`);
+            return;
+          }
+
           if (!Array.isArray(player.log)) player.log = [];
-          player.log.push({ date: formatDate(Date.now()), type: 'REGISTRATION' });
+          player.log.push({ date: formatDate(Date.now()), type: 'DOWNLOAD', file: 'PORTSCAN v1, PASSCRACK v1, CONNECT v1' });
         }
-
-        sessionTargets = assignIps(targets);
-	await apiRegister(player.handle, player.password, player, sessionTargets);
-
-        if (!Array.isArray(player.log)) player.log = [];
-        player.log.push({ date: formatDate(Date.now()), type: 'DOWNLOAD', file: 'PORTSCAN v1, PASSCRACK v1, CONNECT v1' });
       }
 
       printBlank();
@@ -370,8 +359,7 @@ export async function userCreation() {
       if (!Array.isArray(player.log)) player.log = [];
       player.log.push({ date: formatDate(Date.now()), type: 'LOG IN' });
 
-      const save = await apiLoadSave(player.handle);
-      sessionTargets = save ? save.targets : assignIps(targets);
+      // Final save to sync the log entries added after registration
       await apiSaveGame(player, sessionTargets);
 
       document.getElementById('createPrompt').remove();
