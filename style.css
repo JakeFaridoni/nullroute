@@ -57,3 +57,202 @@ pre {
     margin: 0;
     font-family: 'custom';
 }
+
+/* ── LAYOUT ─────────────────────────────────────────── */
+
+html, body {
+    height: 100%;
+    margin: 0;
+    overflow: hidden;
+    cursor: none;
+}
+
+#app {
+    display: grid;
+    grid-template-columns: 50fr 50fr;
+    height: calc(100vh - 2rem);
+    gap: 3px;
+    background-color: #fff; /* gap color, acts as border between panels */
+}
+
+#panel-right {
+    display: grid;
+    grid-template-rows: 30fr 70fr;
+    gap: 3px;
+    background-color: #fff;
+}
+
+/* ── PANELS ─────────────────────────────────────────── */
+
+#panel-terminal,
+#panel-tracker,
+#panel-bouncemap,
+#panel-inbox {
+    background-color: black;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    min-height: 0;
+}
+
+.panel-header {
+    color: white;
+    border-bottom: 1px solid #333;
+    padding: 0.3em 0.6em;
+    flex-shrink: 0;
+    letter-spacing: 0.05em;
+    font-size: 1.5rem;
+}
+
+.panel-content {
+    flex: 1;
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding: 0.4em 0.6em;
+    min-height: 0;
+    scrollbar-width: none;
+    font-size: 1.5rem;
+}
+
+.panel-content::-webkit-scrollbar {
+    display: none;
+}
+
+/* ── STATUS BAR ─────────────────────────────────────── */
+
+#statusbar {
+    height: 2rem;
+    background-color: #222;
+    color: white;
+    display: flex;
+    align-items: center;
+    gap: 2em;
+    padding: 0 1em;
+    font-size: 0.85rem;
+    flex-shrink: 0;
+}
+
+#status-connection {
+    margin-left: auto;
+}
+
+/* ── CURSOR ─────────────────────────────────────────── */
+
+#custom-cursor {
+    position: fixed;
+    width: 5px;
+    height: 5px;
+    background-color: white;
+    pointer-events: none;
+    z-index: 9999;
+    translate: -50% -50%;
+    mix-blend-mode: difference;
+}
+
+.cursor-trail {
+    position: fixed;
+    width: 5px;
+    height: 5px;
+    background-color: white;
+    pointer-events: none;
+    z-index: 9998;
+    translate: -50% -50%;
+    animation: trail-fade 300ms ease-out forwards;
+    mix-blend-mode: difference;
+}
+
+@keyframes trail-fade {
+    from {
+        opacity: 0.4;
+        transform: scale(1);
+    }
+    to {
+        opacity: 0;
+        transform: scale(0.3);
+    }
+}
+
+/* ── INBOX ───────────────────────────────────────────── */
+
+#inbox-wrapper {
+    display: grid;
+    grid-template-columns: 35fr 65fr;
+    height: 100%;
+    gap: 0;
+}
+
+#inbox-list {
+    border-right: 1px solid white;
+    overflow-y: auto;
+    scrollbar-width: none;
+}
+
+#inbox-list::-webkit-scrollbar {
+    display: none;
+}
+
+.inbox-row {
+    padding: 0.3em 0.5em;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    cursor: none;
+}
+
+.inbox-row-divider {
+    border-bottom: 1px solid white;
+}
+
+.inbox-selected {
+    background-color: white;
+    color: black;
+}
+
+.inbox-empty {
+    padding: 0.5em;
+}
+
+#inbox-detail {
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+#inbox-detail-title {
+    padding: 0.3em 0.6em;
+    flex-shrink: 0;
+}
+
+.inbox-title-divider {
+    border-bottom: 1px solid white;
+    flex-shrink: 0;
+}
+
+#inbox-detail-body {
+    padding: 0.5em 0.6em;
+    overflow-y: auto;
+    scrollbar-width: none;
+    flex: 1;
+}
+
+#inbox-detail-body::-webkit-scrollbar {
+    display: none;
+}
+
+.inbox-detail-line {
+    white-space: pre-wrap;
+    margin-bottom: 0.1em;
+}
+
+.inbox-delete-btn {
+    justify-self: flex-end;
+    margin-top: 0.5em;
+    cursor: none;
+    opacity: 0.5;
+}
+
+.inbox-delete-btn:hover {
+    opacity: 1;
+    background-color: white;
+    color: black;
+}

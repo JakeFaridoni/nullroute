@@ -1,4 +1,4 @@
-import { player } from "../user-js/user-creation.js";
+import { player } from "../user-creation.js";
 
 export function getLines() {
 

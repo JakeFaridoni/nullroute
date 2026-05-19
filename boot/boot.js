@@ -8,13 +8,17 @@ export function getMaxLines(container) {
 }
 
 export const tickSound = new Audio('./assets/audio/tick.mp3');
+export const clackSound = new Audio('./assets/audio/clack.mp3');
+export const beepSound = new Audio('./assets/audio/beep.mp3');
+export const messageSound = new Audio('./assets/audio/new-message.mp3');
+export const navigateInboxSound = new Audio('./assets/audio/navigate-inbox.mp3');
+
 export function playSound(sound) {
   const click = sound.cloneNode();
   click.volume = 0.5;
   click.play();
 }
 
-export const clackSound = new Audio('./assets/audio/clack.mp3');
 
 export async function bootSequence() {
   const lines = getLines();
@@ -54,21 +58,8 @@ export async function bootSequence() {
       pre.innerHTML += '<span class="ok">  [ OK ]</span>';
     }
   }
-
-  container.removeChild(container.firstChild);
-  await new Promise(resolve => {
-      const span = document.createElement('span');
-      span.textContent = 'PRESS ANY KEY TO LOAD INTO USER ENVIRONMENT. ';
-      container.appendChild(span);
-
-      const cursor = document.createElement('span');
-      cursor.textContent = '_';
-      cursor.id = 'cursor';
-      cursor.style.animation = 'blink 0.7s step-end infinite';
-      span.appendChild(cursor);
-
-      document.addEventListener('keydown', resolve, { once: true });
-    });
+  await new Promise(r => setTimeout(r, 1000));
+  playSound(beepSound);
 }
 
 function typeDots(el) {
