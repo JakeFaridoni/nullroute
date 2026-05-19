@@ -11,11 +11,38 @@
 // wrapping it in Promise.resolve() costs nothing.
 // ─────────────────────────────────────────────────────────────────────────────
 
-import {
-    _ls_loadSaves,
-    _ls_writeSaves,
-    _ls_seedDefaultSave,
-} from './saves.js';
+
+const BASE_URL = '/api';   // Nginx proxies /api/ → localhost:3001
+
+function isAuthenticated() {
+    return _token !== null;
+}
+
+// Token lives in memory only — never in localStorage.
+// It is lost on page refresh, which means the player logs in again.
+// That's intentional: it keeps credentials out of browser storage.
+let _token = null;
+
+function authHeader() {
+    return _token ? { 'Authorization': `Bearer ${_token}` } : {};
+}
+
+async function apiFetch(path, options = {}) {
+    try {
+        const res = await fetch(`${BASE_URL}${path}`, {
+            ...options,
+            headers: {
+                'Content-Type': 'application/json',
+                ...authHeader(),
+                ...(options.headers ?? {}),
+            },
+        });
+        return res.json();
+    } catch (err) {
+        console.warn(`[api] fetch failed: ${path}`, err);
+        return { ok: false, reason: 'NETWORK ERROR' };
+    }
+}
 
 // ── AUTH ──────────────────────────────────────────────────────────────────────
 
@@ -27,22 +54,14 @@ import {
  *               → 201 { token, player, targets }
  *               → 409 { reason: 'HANDLE TAKEN' }
  */
+
 export async function apiRegister(handle, password, playerTemplate, targets) {
-    // ── local implementation ──
-    const saves = _ls_loadSaves();
-    const key = handle.toUpperCase();
-
-    if (saves[key]) {
-        return { ok: false, reason: 'HANDLE TAKEN' };
-    }
-
-    const hashedPassword = await bcrypt.hash(password, 10);
-    const playerToSave = { ...playerTemplate, password: hashedPassword };
-
-    saves[key] = { player: playerToSave, targets };
-    _ls_writeSaves(saves);
-
-    return { ok: true, player: playerToSave, targets };
+    const data = await apiFetch('/auth/register', {
+        method: 'POST',
+        body: JSON.stringify({ handle, password, player: playerTemplate, targets }),
+    });
+    if (data.ok) _token = data.token;
+    return data;
 }
 
 /**
@@ -54,22 +73,14 @@ export async function apiRegister(handle, password, playerTemplate, targets) {
  *               → 401 { reason: 'INVALID CREDENTIALS' }
  *               → 404 { reason: 'OPERATOR NOT FOUND' }
  */
+
 export async function apiLogin(handle, password) {
-    // ── local implementation ──
-    const saves = _ls_loadSaves();
-    const key = handle.toUpperCase();
-    const save = saves[key];
-
-    if (!save) {
-        return { ok: false, reason: 'OPERATOR NOT FOUND' };
-    }
-
-    const valid = await bcrypt.compare(password, save.player.password);
-    if (!valid) {
-        return { ok: false, reason: 'INVALID CREDENTIALS' };
-    }
-
-    return { ok: true, player: save.player, targets: save.targets };
+    const data = await apiFetch('/auth/login', {
+        method: 'POST',
+        body: JSON.stringify({ handle, password }),
+    });
+    if (data.ok) _token = data.token;
+    return data;
 }
 
 /**
@@ -79,10 +90,9 @@ export async function apiLogin(handle, password) {
  * BACKEND STUB: GET /auth/exists/:handle
  *               → 200 { exists: true|false }
  */
+
 export async function apiHandleExists(handle) {
-    // ── local implementation ──
-    const saves = _ls_loadSaves();
-    return { exists: !!saves[handle.toUpperCase()] };
+    return apiFetch(`/auth/exists/${encodeURIComponent(handle)}`);
 }
 
 // ── SAVE / LOAD ───────────────────────────────────────────────────────────────
@@ -94,21 +104,13 @@ export async function apiHandleExists(handle) {
  * BACKEND STUB: PUT /save  { player, targets }  (authenticated via JWT header)
  *               → 200 { ok: true }
  */
+
 export async function apiSaveGame(player, targets) {
-    // ── local implementation ──
-    const saves = _ls_loadSaves();
-    const toSave = { ...player };
-
-    // Only re-hash if the password arrived in plaintext (shouldn't happen after
-    // login, but keeps the guard that was already in saves.js).
-    if (toSave.password && !toSave.password.startsWith('$2')) {
-        toSave.password = await bcrypt.hash(toSave.password, 10);
-    }
-
-    saves[player.handle] = { player: toSave, targets };
-    _ls_writeSaves(saves);
-
-    return { ok: true };
+    if (!isAuthenticated()) return { ok: false, reason: 'NOT LOGGED IN' };
+    return apiFetch('/save', {
+        method: 'PUT',
+        body: JSON.stringify({ player, targets }),
+    });
 }
 
 /**
@@ -119,10 +121,11 @@ export async function apiSaveGame(player, targets) {
  *               → 200 { player, targets }
  *               → 404 null
  */
+
 export async function apiLoadSave(handle) {
-    // ── local implementation ──
-    const saves = _ls_loadSaves();
-    return saves[handle.toUpperCase()] ?? null;
+    if(!isAuthenticated()) return null;
+    const data = await apiFetch('/save');
+    return data.ok ? { player: data.player, targets: data.targets } : null;
 }
 
 // ── WORLD STATE ───────────────────────────────────────────────────────────────
@@ -141,9 +144,11 @@ export async function apiLoadSave(handle) {
  * BACKEND STUB: GET /world/targets
  *               → 200 { targets: [...] }
  */
+
 export async function apiGetWorldTargets(sessionTargets) {
-    // ── local implementation (no-op passthrough) ──
-    return { ok: true, targets: sessionTargets };
+    if (!isAuthenticated()) return { ok: false, reason: 'NOT LOGGED IN' };
+    const data = await apiFetch('/world/targets');
+    return data.ok ? { ok: true, targets: data.targets } : { ok: true, targets: sessionTargets };
 }
 
 /**
@@ -153,11 +158,13 @@ export async function apiGetWorldTargets(sessionTargets) {
  * BACKEND STUB: POST /world/action  { targetName, action, playerHandle }
  *               → 200 { ok: true, worldDelta: {...} }
  */
-export async function apiRecordAction(playerHandle, targetName, action) {
-    // ── local implementation (no-op) ──
-    // Nothing to persist locally — world events only matter in a shared context.
-    console.debug(`[api] action recorded locally (no-op): ${playerHandle} → ${action} on ${targetName}`);
-    return { ok: true };
+
+export async function apiRecordAction(playerHandle, targetName, action, outcome = 'SUCCESS') {
+    if (!isAuthenticated()) return { ok: false, reason: 'NOT LOGGED IN' };
+    return apiFetch('/world/action', {
+        method: 'POST',
+        body: JSON.stringify({ targetName, action, outcome }),
+    });
 }
 
 /**
@@ -168,9 +175,10 @@ export async function apiRecordAction(playerHandle, targetName, action) {
  * BACKEND STUB: GET /contracts
  *               → 200 { contracts: [...] }
  */
-export async function apiGetContractBoard(contractBoard) {
-    // ── local implementation (passthrough) ──
-    return { ok: true, contracts: contractBoard };
+
+export async function apiGetContractBoard() {
+    const data = await apiFetch('/contracts');
+    return data.ok ? { ok: true, contracts: data.contracts } : { ok: true, contracts: [] };
 }
 
 /**
@@ -180,12 +188,9 @@ export async function apiGetContractBoard(contractBoard) {
  *               → 200 { ok: true, contract }
  *               → 409 { ok: false, reason: 'ALREADY ACCEPTED' }
  */
-export async function apiAcceptContract(contractId, contractBoard, player, sessionTargets) {
-    // ── local implementation — delegates to existing acceptContract logic ──
-    // We import here (not at top-level) to avoid a circular dependency between
-    // api.js → contracts.js → api.js.  A real backend call wouldn't need this.
-    const { acceptContract } = await import('./contracts.js');
-    return await acceptContract(contractId, sessionTargets);
+
+export async function apiAcceptContract(contractId) {
+    return apiFetch(`/contracts/${contractId}/accept`, { method: 'POST' });
 }
 
 // ── ADMIN / GM ────────────────────────────────────────────────────────────────
@@ -199,10 +204,12 @@ export async function apiAcceptContract(contractId, contractBoard, player, sessi
  * BACKEND STUB: POST /admin/broadcast  { message, targetHandle? }  (admin JWT)
  *               → 200 { ok: true, delivered: number }
  */
+
 export async function apiBroadcastMessage(message, targetHandle = null) {
-    // ── local implementation (no-op) ──
-    console.debug(`[api] broadcast (no-op locally):`, message, targetHandle ?? 'ALL');
-    return { ok: true };
+    return apiFetch('/admin/broadcast', {
+        method: 'POST',
+        body: JSON.stringify({ message, targetHandle }),
+    });
 }
 
 /**
@@ -211,10 +218,12 @@ export async function apiBroadcastMessage(message, targetHandle = null) {
  * BACKEND STUB: POST /admin/world-event  { type, targetName, payload }  (admin JWT)
  *               → 200 { ok: true }
  */
+
 export async function apiTriggerWorldEvent(type, targetName, payload = {}) {
-    // ── local implementation (no-op) ──
-    console.debug(`[api] world event (no-op locally): ${type} on ${targetName}`, payload);
-    return { ok: true };
+    return apiFetch('/admin/world-event', {
+        method: 'POST',
+        body: JSON.stringify({ type, targetName, payload }),
+    });
 }
 
 /**
@@ -223,15 +232,10 @@ export async function apiTriggerWorldEvent(type, targetName, payload = {}) {
  * BACKEND STUB: PATCH /admin/player/:handle  { clearance?, balance? }  (admin JWT)
  *               → 200 { ok: true, player }
  */
+
 export async function apiAdjustPlayer(handle, delta = {}) {
-    // ── local implementation ──
-    const saves = _ls_loadSaves();
-    const key = handle.toUpperCase();
-    if (!saves[key]) return { ok: false, reason: 'OPERATOR NOT FOUND' };
-
-    if (delta.clearance !== undefined) saves[key].player.clearance = delta.clearance;
-    if (delta.balance   !== undefined) saves[key].player.balance   = delta.balance;
-
-    _ls_writeSaves(saves);
-    return { ok: true, player: saves[key].player };
+    return apiFetch(`/admin/operators/${encodeURIComponent(handle)}`, {
+        method: 'PATCH',
+        body: JSON.stringify(delta),
+    });
 }

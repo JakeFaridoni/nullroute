@@ -336,7 +336,7 @@ export async function userCreation() {
         }
 
         sessionTargets = assignIps(targets);
-        await apiSaveGame(player, sessionTargets);
+	await apiRegister(player.handle, player.password, player, sessionTargets);
 
         if (!Array.isArray(player.log)) player.log = [];
         player.log.push({ date: formatDate(Date.now()), type: 'DOWNLOAD', file: 'PORTSCAN v1, PASSCRACK v1, CONNECT v1' });
