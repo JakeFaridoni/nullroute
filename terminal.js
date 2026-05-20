@@ -588,7 +588,9 @@ function printStockBoard() {
     printBlank();
     print(`  PORTFOLIO VALUE:  ${portfolioValue.toFixed(0)} CR`);
     printBlank();
-    print('  COMMANDS: BUY [ TICKER ] [ AMT ]  |  SELL [ TICKER ] [ AMT ]  |  DISCONNECT');
+    print('  COMMANDS: BUY [ TICKER ] [ AMT ]  ');
+    print('            SELL [ TICKER ] [ AMT ]');
+    print('            DISCONNECT');
     printBlank();
 }
 
@@ -602,7 +604,7 @@ async function cmdBuy(args) {
     const amount = parseInt(args[1]);
 
     if (!ticker || !amount || amount < 1) {
-        print('USAGE: BUY [TICKER] [AMOUNT]');
+        print('USAGE: BUY [ TICKER ] [ AMOUNT ]');
         return;
     }
 
@@ -647,7 +649,7 @@ async function cmdSell(args) {
     const amount = parseInt(args[1]);
 
     if (!ticker || !amount || amount < 1) {
-        print('USAGE: SELL [TICKER] [AMOUNT]');
+        print('USAGE: SELL [ TICKER ] [ AMOUNT ]');
         return;
     }
 
