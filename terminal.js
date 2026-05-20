@@ -120,7 +120,7 @@ function printPromptLine(raw) {
     pre.textContent = `${player.handle}@${player.id} > ${raw}`;
     // insert before the input line so it appears above it
     container.insertBefore(pre, inputLine);
-    trimLines();
+    
     scrollToBottom();
 }
 
@@ -142,7 +142,7 @@ export function print(text) {
     const pre = document.createElement('pre');
     pre.textContent = text;
     container.insertBefore(pre, inputLine);
-    trimLines();
+    
     scrollToBottom();
 }
 
@@ -150,7 +150,7 @@ export function printBlank() {
     const pre = document.createElement('pre');
     pre.innerHTML = '&nbsp;';
     container.insertBefore(pre, inputLine);
-    trimLines();
+    
     scrollToBottom();
 }
 
@@ -163,7 +163,7 @@ function typeLine(text) {
         pre.appendChild(textSpan);
         pre.appendChild(dotsSpan);
         container.insertBefore(pre, inputLine);
-        trimLines();
+        
 
         const tw = new Typewriter(dotsSpan, { delay: 30, cursor: '' });
         tw.typeString('...').callFunction(resolve).start();
