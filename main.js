@@ -59,7 +59,7 @@ statusId.textContent = `ID: ${player.id}`;
 const statusClearance = document.getElementById('status-clearance');
 statusClearance.textContent = `CLEAR: TIER ${player.clearance}`;
 
-const statusBalance = document.getElementById('status-balance');
+export const statusBalance = document.getElementById('status-balance');
 
 export const statusConnection = document.getElementById('status-connection');
 statusBalance.textContent = `BAL: ${player.balance}CR`;

@@ -1,7 +1,7 @@
 import { beepSound, bootSequence, clackSound, messageSound } from '../boot/boot.js';
 import { tickSound, playSound } from '../boot/boot.js';
 import { apiSaveGame, apiLogin, apiHandleExists, apiRegister, apiLoadSave } from '../api.js';
-import { targets, assignIps } from './companies.js';
+import { globalCompanies, localCompanies, flattenCompanies, assignIps } from './companies.js';
 import { render } from '../inbox.js';
 import { BGM } from '../main.js';
 
@@ -12,6 +12,7 @@ export const player = {
   clearance: 0,
   balance: 3000,
   affiliation: 'FREELANCER',
+  portfolio: {},
   inbox: [],
 
   tools: [
@@ -253,7 +254,7 @@ export async function userCreation() {
     // Restore session targets from the server save
     sessionTargets = loginResult.targets?.length
       ? loginResult.targets
-      : assignIps(targets);
+      : assignIps(flattenCompanies(globalCompanies, localCompanies));
 
     printBlank();
     printLine(`WELCOME BACK, ${player.handle}`);
@@ -290,7 +291,7 @@ export async function userCreation() {
             Object.assign(player, loginResult.player);
             sessionTargets = loginResult.targets?.length
               ? loginResult.targets
-              : assignIps(targets);
+              : assignIps(flattenCompanies(globalCompanies, localCompanies));
           } else {
             await typeLine('OPERATOR EXISTS, STARTING LOG IN', 'FAIL');
             playSound(tickSound);

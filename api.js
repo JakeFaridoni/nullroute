@@ -1,17 +1,3 @@
-// api.js
-// ─────────────────────────────────────────────────────────────────────────────
-// Single interface between the game and its persistence / world layer.
-//
-// TODAY  → all methods delegate to localStorage via the helpers in saves.js.
-// LATER  → swap each method body for a fetch() call to your real backend.
-//          No other file in the project needs to change.
-//
-// Every method is async so callers are already written in the right style —
-// the real backend will need to await network I/O, localStorage doesn't, but
-// wrapping it in Promise.resolve() costs nothing.
-// ─────────────────────────────────────────────────────────────────────────────
-
-
 const BASE_URL = '/api';   // Nginx proxies /api/ → localhost:3001
 
 function isAuthenticated() {
@@ -237,5 +223,23 @@ export async function apiAdjustPlayer(handle, delta = {}) {
     return apiFetch(`/admin/operators/${encodeURIComponent(handle)}`, {
         method: 'PATCH',
         body: JSON.stringify(delta),
+    });
+}
+
+export async function apiGetStocks() {
+    return apiFetch('/stock');
+}
+
+export async function apiBuyStock(ticker, amount) {
+    return apiFetch('/stock/buy', {
+        method: 'POST',
+        body: JSON.stringify({ ticker, amount }),
+    });
+}
+
+export async function apiSellStock(ticker, amount) {
+    return apiFetch('/stock/sell', {
+        method: 'POST',
+        body: JSON.stringify({ ticker, amount }),
     });
 }

@@ -1,11 +1,11 @@
 import { player, sessionTargets } from './user-creation.js';
 import { beepSound, clackSound, playSound } from './boot/boot.js';
 import { contractBoard, acceptContract } from './contracts.js';
-import { statusConnection } from './main.js';
+import { statusConnection, statusBalance } from './main.js';
+import { apiGetStocks, apiBuyStock, apiSellStock } from './api.js';
+import { apiSaveGame } from './api.js';
 
 let connectedTo = null;
-
-// ── STATE ────────────────────────────────────────────
 
 const history = [];       // command history
 let historyIndex = -1;    // current position when cycling with arrow keys
@@ -16,8 +16,6 @@ let inputLine;            // the always-present bottom input row
 let inputValueSpan;       // the span showing what the user is typing
 let cursorSpan;           // the blinking underscore
 let inputValue = '';      // current input buffer
-
-// ── INIT ─────────────────────────────────────────────
 
 export function initTerminal(el) {
     container = el;
@@ -42,17 +40,15 @@ export function initTerminal(el) {
     inputLine.appendChild(cursorSpan);
     container.appendChild(inputLine);
 
-    // print a welcome line on init
+    // print a welcome line
     print('NULLROUTE TERMINAL READY.');
     printBlank();
     print('TYPE \'HELP\' FOR COMMANDS.');
     printBlank();
 
-    // global keydown listener — always active
+    // global keydown listener
     document.addEventListener('keydown', handleKeydown);
 }
-
-// ── INPUT HANDLER ─────────────────────────────────────
 
 function handleKeydown(e) {
     if (inputLocked) return;
@@ -169,7 +165,7 @@ function typeLine(text) {
         pre.appendChild(dotsSpan);
         container.insertBefore(pre, inputLine);
         trimLines();
-
+        
         const tw = new Typewriter(dotsSpan, { delay: 30, cursor: '' });
         tw.typeString('...').callFunction(resolve).start();
         scrollToBottom();
@@ -216,7 +212,7 @@ async function cmdConnect(args) {
         print(`ALREADY CONNECTED TO ${connectedTo}. DISCONNECT FIRST.`);
         return;
     }
-
+    
     
     const target = args[0]?.toUpperCase();
     if (!target) {
@@ -229,20 +225,61 @@ async function cmdConnect(args) {
         statusConnection.textContent = `CONNECTION: ${connectedTo}`;
         return;
     }
-
-    print(`USAGE: CONNECT [NULLROUTE | IP]`);
+    
+    if (target === 'STOCKMARKET') {
+        await connectStockMarket();
+        statusConnection.textContent = `CONNECTION: ${connectedTo}`;
+        return;
+    }
+    
+    print(`USAGE: CONNECT [NULLROUTE | STOCKMARKET | IP]`);
     // full target connection logic comes later
 }
 cmdConnect.description = 'CONNECT TO A HOST.';
 
+async function cmdDisconnect(args) {
+    if (!connectedTo) {
+        print('NOT CONNECTED TO ANY HOST.');
+        return;
+    }
+
+    const wasConnected = connectedTo;
+    connectedTo = null;
+
+    if (wasConnected === 'NULLROUTE') {
+        setNullrouteMode(false);
+        printBlank();
+        await typeLine('CLOSING SECURE CHANNEL');
+        await typeLine('SCRUBBING SESSION DATA');
+        printBlank();
+        print('DISCONNECTED FROM NULLROUTE.');
+        printBlank();
+        statusConnection.textContent = 'CONNECTION: NONE';
+        return;
+    }
+
+    if (wasConnected === 'STOCKMARKET') {
+        setStockMarketMode(false);
+        printBlank();
+        await typeLine('CLOSING MARKET CONNECTION');
+        printBlank();
+        print('DISCONNECTED FROM STOCK MARKET.');
+        printBlank();
+        statusConnection.textContent = 'CONNECTION: NONE';
+        return;
+    }
+
+    // full target disconnect logic comes later
+}
+cmdDisconnect.description = 'DISCONNECT FROM HOST';
 
 // NULLROUTE service connection
 async function connectNullroute() {
     connectedTo = 'NULLROUTE';
-
+    
     // swap command registry to NULLROUTE-only commands
     setNullrouteMode(true);
-
+    
     printBlank();
     await typeLine('ROUTING TO NULLROUTE SERVICES');
     await typeLine('AUTHENTICATING OPERATOR');
@@ -346,30 +383,6 @@ async function cmdAccept(args) {
 }
 cmdAccept.description = 'ACCEPT A CONTRACT.';
 
-async function cmdDisconnect(args) {
-    if (!connectedTo) {
-        print('NOT CONNECTED TO ANY HOST.');
-        return;
-    }
-
-    const wasConnected = connectedTo;
-    connectedTo = null;
-
-    if (wasConnected === 'NULLROUTE') {
-        setNullrouteMode(false);
-        printBlank();
-        await typeLine('CLOSING SECURE CHANNEL');
-        await typeLine('SCRUBBING SESSION DATA');
-        printBlank();
-        print('DISCONNECTED FROM NULLROUTE.');
-        printBlank();
-        statusConnection.textContent = 'CONNECTION: NONE';
-        return;
-    }
-
-    // full target disconnect logic comes later
-}
-cmdDisconnect.description = 'DISCONNECT FROM HOST';
 
 // display commands
 function cmdHelp() {
@@ -510,3 +523,225 @@ function cmdLog(args) {
     }
 }
 cmdLog.description = 'VIEW SYSTEM LOG.';
+
+// ── STOCK MARKET ──────────────────────────────────────────────────────────────
+
+let _stockData = [];       // current prices, fetched on connect
+let _stockPollTimer = null; // refreshes prices every 30s while connected
+
+async function connectStockMarket() {
+    connectedTo = 'STOCKMARKET';
+    setStockMarketMode(true);
+
+    printBlank();
+    await typeLine('ROUTING TO MARKET NODE');
+    await typeLine('AUTHENTICATING OPERATOR');
+    await typeLine('FETCHING MARKET DATA');
+    printBlank();
+
+    const result = await apiGetStocks();
+    if (!result.ok) {
+        print('MARKET UNAVAILABLE. TRY AGAIN LATER.');
+        connectedTo = null;
+        setStockMarketMode(false);
+        return;
+    }
+
+    _stockData = result.stocks;
+    printStockBoard();
+
+    // poll every 30 seconds while connected
+    _stockPollTimer = setInterval(async () => {
+        const refresh = await apiGetStocks();
+        if (refresh.ok) {
+            _stockData = refresh.stocks;
+            // update ticker only — don't reprint the whole board
+            renderTicker();
+        }
+    }, 30000);
+
+    statusConnection.textContent = 'CONNECTION: STOCKMARKET';
+}
+
+function printStockBoard() {
+    printBlank();
+    print(`  ${'TICKER'.padEnd(8)}${'COMPANY'.padEnd(24)}${'PRICE'.padEnd(14)}${'CHANGE'.padEnd(12)}${'OWNED'.padEnd(10)}VALUE`);
+    printBlank();
+
+    for (const s of _stockData) {
+        const ticker  = s.ticker.padEnd(8);
+        const company = s.company.padEnd(24);
+        const price   = `${parseFloat(s.price).toFixed(2)} CR`.padEnd(14);
+        const diff    = parseFloat(s.price) - parseFloat(s.prev_price);
+        const arrow   = diff > 0 ? '▲' : diff < 0 ? '▼' : '─';
+        const change  = `${arrow} ${Math.abs(diff).toFixed(2)}`.padEnd(12);
+        const owned   = (player.portfolio?.[s.ticker] ?? 0);
+        const value   = owned > 0 ? `${(owned * parseFloat(s.price)).toFixed(0)} CR` : '—';
+
+        print(`  ${ticker}${company}${price}${change}${owned.toString().padEnd(10)}${value}`);
+        printBlank();
+    }
+
+    const portfolioValue = _stockData.reduce((sum, s) => {
+        return sum + (player.portfolio?.[s.ticker] ?? 0) * parseFloat(s.price);
+    }, 0);
+
+    printBlank();
+    print(`  PORTFOLIO VALUE:  ${portfolioValue.toFixed(0)} CR`);
+    printBlank();
+    print('  COMMANDS: BUY [TICKER] [AMT]  |  SELL [TICKER] [AMT]  |  DISCONNECT');
+    printBlank();
+}
+
+// the scrolling ticker — rewrites the first line of the panel
+// We render it as a separate fixed element so it doesn't disrupt the scroll
+let _tickerEl = null;
+
+function renderTicker() {
+    if (!_tickerEl) {
+        _tickerEl = document.createElement('div');
+        _tickerEl.id = 'stock-ticker';
+        container.parentElement.insertBefore(_tickerEl, container);
+    }
+
+    const parts = _stockData.map(s => {
+        const diff  = parseFloat(s.price) - parseFloat(s.prev_price);
+        const arrow = diff > 0 ? '▲' : diff < 0 ? '▼' : '─';
+        return `${s.ticker}  ${parseFloat(s.price).toFixed(2)} ${arrow}`;
+    });
+
+    // duplicate for seamless loop
+    const full = parts.join('     ') + '     ' + parts.join('     ');
+    _tickerEl.textContent = full;
+}
+
+function destroyTicker() {
+    if (_tickerEl) {
+        _tickerEl.remove();
+        _tickerEl = null;
+    }
+}
+
+async function cmdBuy(args) {
+    if (connectedTo !== 'STOCKMARKET') {
+        print('NOT CONNECTED TO STOCK MARKET.');
+        return;
+    }
+
+    const ticker = args[0]?.toUpperCase();
+    const amount = parseInt(args[1]);
+
+    if (!ticker || !amount || amount < 1) {
+        print('USAGE: BUY [TICKER] [AMOUNT]');
+        return;
+    }
+
+    const stock = _stockData.find(s => s.ticker === ticker);
+    if (!stock) {
+        print(`UNKNOWN TICKER: ${ticker}`);
+        return;
+    }
+
+    const cost = Math.ceil(parseFloat(stock.price) * amount);
+    printBlank();
+    print(`BUYING ${amount} x ${ticker} @ ${parseFloat(stock.price).toFixed(2)} CR = ${cost} CR`);
+
+    const result = await apiBuyStock(ticker, amount);
+    printBlank();
+
+    if (!result.ok) {
+        print(`FAILED: ${result.reason}`);
+        return;
+    }
+
+    player.portfolio = result.portfolio;
+    player.balance  -= result.spent;
+    await saveGame(player, sessionTargets);
+
+    statusBalance.textContent = `BAL: ${player.balance}CR`;
+
+    print(`PURCHASED. SPENT: ${result.spent} CR`);
+    print(`NEW BALANCE: ${player.balance} CR`);
+    print(`${ticker} OWNED: ${player.portfolio[ticker] ?? 0}`);
+    printBlank();
+}
+cmdBuy.description = 'BUY SHARES.';
+
+async function cmdSell(args) {
+    if (connectedTo !== 'STOCKMARKET') {
+        print('NOT CONNECTED TO STOCK MARKET.');
+        return;
+    }
+
+    const ticker = args[0]?.toUpperCase();
+    const amount = parseInt(args[1]);
+
+    if (!ticker || !amount || amount < 1) {
+        print('USAGE: SELL [TICKER] [AMOUNT]');
+        return;
+    }
+
+    const owned = player.portfolio?.[ticker] ?? 0;
+    if (owned === 0) {
+        print(`YOU OWN NO SHARES IN ${ticker}.`);
+        return;
+    }
+
+    const stock = _stockData.find(s => s.ticker === ticker);
+    if (!stock) {
+        print(`UNKNOWN TICKER: ${ticker}`);
+        return;
+    }
+
+    const value = Math.floor(parseFloat(stock.price) * amount);
+    printBlank();
+    print(`SELLING ${amount} x ${ticker} @ ${parseFloat(stock.price).toFixed(2)} CR = ${value} CR`);
+
+    const result = await apiSellStock(ticker, amount);
+    printBlank();
+
+    if (!result.ok) {
+        print(`FAILED: ${result.reason}`);
+        return;
+    }
+
+    player.portfolio = result.portfolio;
+    player.balance  += result.earned;
+    await saveGame(player, sessionTargets);
+
+    statusBalance.textContent = `BAL: ${player.balance}CR`;
+
+    print(`SOLD. EARNED: ${result.earned} CR`);
+    print(`NEW BALANCE: ${player.balance} CR`);
+    print(`${ticker} OWNED: ${player.portfolio[ticker] ?? 0}`);
+    printBlank();
+}
+cmdSell.description = 'SELL SHARES.';
+
+let _fullStockCommands = null;
+
+function setStockMarketMode(active) {
+    if (active) {
+        _fullStockCommands = { ...commands };
+        for (const key of Object.keys(commands)) {
+            if (!['buy', 'sell', 'disconnect', 'exit'].includes(key)) {
+                delete commands[key];
+            }
+        }
+        commands.buy  = cmdBuy;
+        commands.sell = cmdSell;
+        renderTicker();
+    } else {
+        if (_fullStockCommands) {
+            // clear then restore
+            for (const key of Object.keys(commands)) delete commands[key];
+            Object.assign(commands, _fullStockCommands);
+            _fullStockCommands = null;
+        }
+        destroyTicker();
+        if (_stockPollTimer) {
+            clearInterval(_stockPollTimer);
+            _stockPollTimer = null;
+        }
+    }
+}
