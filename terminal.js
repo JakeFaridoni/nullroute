@@ -708,7 +708,6 @@ function setStockMarketMode(active) {
             Object.assign(commands, _fullStockCommands);
             _fullStockCommands = null;
         }
-        destroyTicker();
         if (_stockPollTimer) {
             clearInterval(_stockPollTimer);
             _stockPollTimer = null;
