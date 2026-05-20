@@ -171,24 +171,10 @@ function typeLine(text) {
     });
 }
 
-function trimLines() {
-    // mirrors boot screen behaviour — scroll old lines off the top
-    const maxLines = getMaxLines();
-    while (container.children.length > maxLines + 1) { // +1 to account for inputLine
-        container.removeChild(container.firstChild);
-    }
-}
-
 function clearTerminal() {
     terminalContent.forEach(line => {
         line.remove();
     });
-}
-
-function getMaxLines() {
-    const lineHeight = inputLine.getBoundingClientRect().height;
-    if (!lineHeight) return 20;
-    return Math.floor(container.getBoundingClientRect().height / lineHeight) - 1;
 }
 
 function scrollToBottom() {
