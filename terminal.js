@@ -589,7 +589,9 @@ function printStockBoard() {
     print(`  PORTFOLIO VALUE:  ${portfolioValue.toFixed(0)} CR`);
     printBlank();
     print('  COMMANDS: BUY [ TICKER ] [ AMT ]  ');
+    printBlank();
     print('            SELL [ TICKER ] [ AMT ]');
+    printBlank();
     print('            DISCONNECT');
     printBlank();
 }
