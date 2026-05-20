@@ -1,4 +1,3 @@
-import { targets } from './companies.js';
 import { titleScreen } from './titlescreen.js';
 import { formatDate, userCreation, player, sessionTargets, sendToInbox } from './user-creation.js';
 import { generateContracts, startContractRefresh } from './contracts.js';
