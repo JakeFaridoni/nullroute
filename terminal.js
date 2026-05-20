@@ -267,7 +267,7 @@ async function cmdDisconnect(args) {
         statusConnection.textContent = 'CONNECTION: NONE';
         return;
     }
-
+    
     // full target disconnect logic comes later
 }
 cmdDisconnect.description = 'DISCONNECT FROM HOST';
@@ -275,15 +275,15 @@ cmdDisconnect.description = 'DISCONNECT FROM HOST';
 // NULLROUTE service connection
 async function connectNullroute() {
     connectedTo = 'NULLROUTE';
-
+    
     // swap command registry to NULLROUTE-only commands
     setNullrouteMode(true);
-
+    
     printBlank();
     await typeLine('ROUTING TO NULLROUTE SERVICES');
     await typeLine('AUTHENTICATING OPERATOR');
     await typeLine('ESTABLISHING SECURE CHANNEL');
-    terminalContent.innerHTML = '';
+    // terminalContent.innerHTML = '';
     printBlank();
     print('NULLROUTE CONTRACT BOARD');
     printBlank();
@@ -293,21 +293,57 @@ async function connectNullroute() {
     printBlank();
 }
 
-function printContractBoard() {
+async function connectStockMarket() {
+    connectedTo = 'STOCKMARKET';
+    setStockMarketMode(true);
+
+    printBlank();
+    await typeLine('ROUTING TO MARKET NODE');
+    await typeLine('AUTHENTICATING OPERATOR');
+    await typeLine('FETCHING MARKET DATA');
     printBlank();
 
+    const result = await apiGetStocks();
+    if (!result.ok) {
+        print('MARKET UNAVAILABLE. TRY AGAIN LATER.');
+        connectedTo = null;
+        setStockMarketMode(false);
+        return;
+    }
+
+    _stockData = result.stocks;
+    // terminalContent.innerHTML = '';
+    printStockBoard();
+    
+
+    // poll every 30 seconds while connected
+    _stockPollTimer = setInterval(async () => {
+        const refresh = await apiGetStocks();
+        if (refresh.ok) {
+            _stockData = refresh.stocks;
+            // update ticker only — don't reprint the whole board
+
+        }
+    }, 30000);
+
+    statusConnection.textContent = 'CONNECTION: STOCKMARKET';
+}
+
+function printContractBoard() {
+    printBlank();
+    
     if (contractBoard.length === 0) {
         print('  NO CONTRACTS AVAILABLE.');
         printBlank();
         return;
     }
-
+    
     print(`  ${'ID'.padEnd(12)}${'OBJECTIVE'.padEnd(14)}PAYOUT`);
     printBlank();
-
+    
     for (const c of contractBoard) {
         if (c.status === 'EXPIRED') continue;
-
+        
         if (c.difficulty > player.clearance) {
             // redacted
             print(`  ${'██████████'.padEnd(12)}${'██████████'.padEnd(14)}██████`);
@@ -529,41 +565,6 @@ cmdLog.description = 'VIEW SYSTEM LOG.';
 let _stockData = [];       // current prices, fetched on connect
 let _stockPollTimer = null; // refreshes prices every 30s while connected
 
-async function connectStockMarket() {
-    connectedTo = 'STOCKMARKET';
-    setStockMarketMode(true);
-
-    printBlank();
-    await typeLine('ROUTING TO MARKET NODE');
-    await typeLine('AUTHENTICATING OPERATOR');
-    await typeLine('FETCHING MARKET DATA');
-    printBlank();
-
-    const result = await apiGetStocks();
-    if (!result.ok) {
-        print('MARKET UNAVAILABLE. TRY AGAIN LATER.');
-        connectedTo = null;
-        setStockMarketMode(false);
-        return;
-    }
-
-    _stockData = result.stocks;
-    terminalContent.innerHTML = '';
-    printStockBoard();
-    
-
-    // poll every 30 seconds while connected
-    _stockPollTimer = setInterval(async () => {
-        const refresh = await apiGetStocks();
-        if (refresh.ok) {
-            _stockData = refresh.stocks;
-            // update ticker only — don't reprint the whole board
-
-        }
-    }, 30000);
-
-    statusConnection.textContent = 'CONNECTION: STOCKMARKET';
-}
 
 function printStockBoard() {
     printBlank();
