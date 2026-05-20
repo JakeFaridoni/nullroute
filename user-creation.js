@@ -319,7 +319,7 @@ export async function userCreation() {
           printBlank();
           printLine(`WELCOME TO NULLROUTE, ${player.handle}`);
 
-          sessionTargets = assignIps(targets);
+          sessionTargets = assignIps(flattenCompanies(globalCompanies, localCompanies));
 
           const registerResult = await apiRegister(player.handle, player.password, player, sessionTargets);
           if (!registerResult.ok) {
