@@ -43,6 +43,8 @@ document.body.innerHTML = `
 </div>
 `;
 
+export const terminalContent = document.getElementById('terminal-content');
+
 const clock = document.getElementById('status-time');
 clock.textContent = `${formatDate(Date.now())}`;
 setInterval(() => {

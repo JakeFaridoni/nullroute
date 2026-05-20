@@ -1,7 +1,7 @@
 import { player, sessionTargets } from './user-creation.js';
 import { beepSound, clackSound, playSound } from './boot/boot.js';
 import { contractBoard, acceptContract } from './contracts.js';
-import { statusConnection, statusBalance } from './main.js';
+import { statusConnection, statusBalance, terminalContent } from './main.js';
 import { apiGetStocks, apiBuyStock, apiSellStock, apiSaveGame } from './api.js';
 
 let connectedTo = null;
@@ -283,6 +283,7 @@ async function connectNullroute() {
     await typeLine('ROUTING TO NULLROUTE SERVICES');
     await typeLine('AUTHENTICATING OPERATOR');
     await typeLine('ESTABLISHING SECURE CHANNEL');
+    terminalContent.innerHTML = '';
     printBlank();
     print('NULLROUTE CONTRACT BOARD');
     printBlank();
@@ -547,7 +548,9 @@ async function connectStockMarket() {
     }
 
     _stockData = result.stocks;
+    terminalContent.innerHTML = '';
     printStockBoard();
+    
 
     // poll every 30 seconds while connected
     _stockPollTimer = setInterval(async () => {
