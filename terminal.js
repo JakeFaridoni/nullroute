@@ -179,6 +179,12 @@ function trimLines() {
     }
 }
 
+function clearTerminal() {
+    terminalContent.forEach(line => {
+        line.remove();
+    });
+}
+
 function getMaxLines() {
     const lineHeight = inputLine.getBoundingClientRect().height;
     if (!lineHeight) return 20;
@@ -267,7 +273,7 @@ async function cmdDisconnect(args) {
         statusConnection.textContent = 'CONNECTION: NONE';
         return;
     }
-    
+
     // full target disconnect logic comes later
 }
 cmdDisconnect.description = 'DISCONNECT FROM HOST';
@@ -275,15 +281,15 @@ cmdDisconnect.description = 'DISCONNECT FROM HOST';
 // NULLROUTE service connection
 async function connectNullroute() {
     connectedTo = 'NULLROUTE';
-    
+
     // swap command registry to NULLROUTE-only commands
     setNullrouteMode(true);
-    
+
     printBlank();
     await typeLine('ROUTING TO NULLROUTE SERVICES');
     await typeLine('AUTHENTICATING OPERATOR');
     await typeLine('ESTABLISHING SECURE CHANNEL');
-    // terminalContent.innerHTML = '';
+    clearTerminal();
     printBlank();
     print('NULLROUTE CONTRACT BOARD');
     printBlank();
@@ -312,9 +318,9 @@ async function connectStockMarket() {
     }
 
     _stockData = result.stocks;
-    // terminalContent.innerHTML = '';
+    clearTerminal();
     printStockBoard();
-    
+
 
     // poll every 30 seconds while connected
     _stockPollTimer = setInterval(async () => {
@@ -331,19 +337,19 @@ async function connectStockMarket() {
 
 function printContractBoard() {
     printBlank();
-    
+
     if (contractBoard.length === 0) {
         print('  NO CONTRACTS AVAILABLE.');
         printBlank();
         return;
     }
-    
+
     print(`  ${'ID'.padEnd(12)}${'OBJECTIVE'.padEnd(14)}PAYOUT`);
     printBlank();
-    
+
     for (const c of contractBoard) {
         if (c.status === 'EXPIRED') continue;
-        
+
         if (c.difficulty > player.clearance) {
             // redacted
             print(`  ${'██████████'.padEnd(12)}${'██████████'.padEnd(14)}██████`);

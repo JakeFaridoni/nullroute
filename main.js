@@ -43,7 +43,7 @@ document.body.innerHTML = `
 </div>
 `;
 
-export const terminalContent = document.getElementById('terminal-content');
+export const terminalContent = document.querySelectorAll('terminal-content > pre:not(#terminal-input-line)');
 
 const clock = document.getElementById('status-time');
 clock.textContent = `${formatDate(Date.now())}`;
