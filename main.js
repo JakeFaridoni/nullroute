@@ -95,7 +95,7 @@ function random(min, max) {
 }
 
 setInterval(() => {
-    if (random(0, 100) === 58) sendToInbox(spam[random(0, spam.length - 1)]);
+    if (random(0, 500) === 4) sendToInbox(spam[random(0, spam.length - 1)]);
 }, 10000);
 
 generateContracts(sessionTargets);

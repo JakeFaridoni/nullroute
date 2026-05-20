@@ -1,4 +1,4 @@
-import { player, formatDate } from './user-creation.js';
+import { player, formatDate, sendToInbox } from './user-creation.js';
 import { apiSaveGame } from './api.js';
 
 // ── CONSTANTS ─────────────────────────────────────────
@@ -118,7 +118,7 @@ export async function acceptContract(id, sessionTargets) {
         acceptedDate: formatDate(Date.now()),
     };
 
-    player.inbox.push(accepted);
+    sendToInbox(accepted);
     await apiSaveGame(player, sessionTargets);
 
     return { ok: true, contract: accepted };

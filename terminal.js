@@ -164,7 +164,7 @@ function typeLine(text) {
         pre.appendChild(dotsSpan);
         container.insertBefore(pre, inputLine);
         trimLines();
-        
+
         const tw = new Typewriter(dotsSpan, { delay: 30, cursor: '' });
         tw.typeString('...').callFunction(resolve).start();
         scrollToBottom();
@@ -211,27 +211,27 @@ async function cmdConnect(args) {
         print(`ALREADY CONNECTED TO ${connectedTo}. DISCONNECT FIRST.`);
         return;
     }
-    
-    
+
+
     const target = args[0]?.toUpperCase();
     if (!target) {
-        print('USAGE: CONNECT [NULLROUTE | IP]');
+        print('USAGE: CONNECT [ NULLROUTE | STOCKMARKET | IP ]');
         return;
     }
-    
+
     if (target === 'NULLROUTE') {
         await connectNullroute();
         statusConnection.textContent = `CONNECTION: ${connectedTo}`;
         return;
     }
-    
+
     if (target === 'STOCKMARKET') {
         await connectStockMarket();
         statusConnection.textContent = `CONNECTION: ${connectedTo}`;
         return;
     }
-    
-    print(`USAGE: CONNECT [NULLROUTE | STOCKMARKET | IP]`);
+
+    print(`USAGE: CONNECT [ NULLROUTE | STOCKMARKET | IP ]`);
     // full target connection logic comes later
 }
 cmdConnect.description = 'CONNECT TO A HOST.';
@@ -275,10 +275,10 @@ cmdDisconnect.description = 'DISCONNECT FROM HOST';
 // NULLROUTE service connection
 async function connectNullroute() {
     connectedTo = 'NULLROUTE';
-    
+
     // swap command registry to NULLROUTE-only commands
     setNullrouteMode(true);
-    
+
     printBlank();
     await typeLine('ROUTING TO NULLROUTE SERVICES');
     await typeLine('AUTHENTICATING OPERATOR');
@@ -288,7 +288,7 @@ async function connectNullroute() {
     printBlank();
     printContractBoard();
     printBlank();
-    print('COMMANDS: ACCEPT [ID]  |  DISCONNECT');
+    print('COMMANDS: ACCEPT [ ID ]  |  DISCONNECT');
     printBlank();
 }
 
@@ -314,10 +314,10 @@ function printContractBoard() {
             continue;
         }
 
-        const id        = c.id.padEnd(12);
+        const id = c.id.padEnd(12);
         const objective = c.objective.padEnd(14);
-        const payout    = `${c.payout.toLocaleString()} CR`;
-        const status    = c.status !== 'AVAILABLE' ? `  [ ${c.status} ]` : '';
+        const payout = `${c.payout.toLocaleString()} CR`;
+        const status = c.status !== 'AVAILABLE' ? `  [ ${c.status} ]` : '';
 
         print(`  ${id}${objective}${payout}${status}`);
         printBlank();
@@ -356,7 +356,7 @@ async function cmdAccept(args) {
 
     const id = args[0]?.toUpperCase();
     if (!id) {
-        print('USAGE: ACCEPT [CONTRACT ID]');
+        print('USAGE: ACCEPT [ CONTRACT ID ]');
         return;
     }
 
@@ -555,7 +555,7 @@ async function connectStockMarket() {
         if (refresh.ok) {
             _stockData = refresh.stocks;
             // update ticker only — don't reprint the whole board
-            renderTicker();
+
         }
     }, 30000);
 
@@ -568,14 +568,14 @@ function printStockBoard() {
     printBlank();
 
     for (const s of _stockData) {
-        const ticker  = s.ticker.padEnd(8);
+        const ticker = s.ticker.padEnd(8);
         const company = s.company.padEnd(24);
-        const price   = `${parseFloat(s.price).toFixed(2)} CR`.padEnd(14);
-        const diff    = parseFloat(s.price) - parseFloat(s.prev_price);
-        const arrow   = diff > 0 ? '▲' : diff < 0 ? '▼' : '─';
-        const change  = `${arrow} ${Math.abs(diff).toFixed(2)}`.padEnd(12);
-        const owned   = (player.portfolio?.[s.ticker] ?? 0);
-        const value   = owned > 0 ? `${(owned * parseFloat(s.price)).toFixed(0)} CR` : '—';
+        const price = `${parseFloat(s.price).toFixed(2)} CR`.padEnd(14);
+        const diff = parseFloat(s.price) - parseFloat(s.prev_price);
+        const arrow = diff > 0 ? '▲' : diff < 0 ? '▼' : '─';
+        const change = `${arrow} ${Math.abs(diff).toFixed(2)}`.padEnd(12);
+        const owned = (player.portfolio?.[s.ticker] ?? 0);
+        const value = owned > 0 ? `${(owned * parseFloat(s.price)).toFixed(0)} CR` : '—';
 
         print(`  ${ticker}${company}${price}${change}${owned.toString().padEnd(10)}${value}`);
         printBlank();
@@ -588,37 +588,8 @@ function printStockBoard() {
     printBlank();
     print(`  PORTFOLIO VALUE:  ${portfolioValue.toFixed(0)} CR`);
     printBlank();
-    print('  COMMANDS: BUY [TICKER] [AMT]  |  SELL [TICKER] [AMT]  |  DISCONNECT');
+    print('  COMMANDS: BUY [ TICKER ] [ AMT ]  |  SELL [ TICKER ] [ AMT ]  |  DISCONNECT');
     printBlank();
-}
-
-// the scrolling ticker — rewrites the first line of the panel
-// We render it as a separate fixed element so it doesn't disrupt the scroll
-let _tickerEl = null;
-
-function renderTicker() {
-    if (!_tickerEl) {
-        _tickerEl = document.createElement('div');
-        _tickerEl.id = 'stock-ticker';
-        container.parentElement.insertBefore(_tickerEl, container);
-    }
-
-    const parts = _stockData.map(s => {
-        const diff  = parseFloat(s.price) - parseFloat(s.prev_price);
-        const arrow = diff > 0 ? '▲' : diff < 0 ? '▼' : '─';
-        return `${s.ticker}  ${parseFloat(s.price).toFixed(2)} ${arrow}`;
-    });
-
-    // duplicate for seamless loop
-    const full = parts.join('     ') + '     ' + parts.join('     ');
-    _tickerEl.textContent = full;
-}
-
-function destroyTicker() {
-    if (_tickerEl) {
-        _tickerEl.remove();
-        _tickerEl = null;
-    }
 }
 
 async function cmdBuy(args) {
@@ -654,7 +625,7 @@ async function cmdBuy(args) {
     }
 
     player.portfolio = result.portfolio;
-    player.balance  -= result.spent;
+    player.balance -= result.spent;
     await apiSaveGame(player, sessionTargets);
 
     statusBalance.textContent = `BAL: ${player.balance}CR`;
@@ -705,7 +676,7 @@ async function cmdSell(args) {
     }
 
     player.portfolio = result.portfolio;
-    player.balance  += result.earned;
+    player.balance += result.earned;
     await apiSaveGame(player, sessionTargets);
 
     statusBalance.textContent = `BAL: ${player.balance}CR`;
@@ -727,9 +698,9 @@ function setStockMarketMode(active) {
                 delete commands[key];
             }
         }
-        commands.buy  = cmdBuy;
+        commands.buy = cmdBuy;
         commands.sell = cmdSell;
-        renderTicker();
+
     } else {
         if (_fullStockCommands) {
             // clear then restore

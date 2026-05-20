@@ -246,24 +246,6 @@ html, body {
     color: black;
 }
 
-#stock-ticker {
-    width: 100%;
-    overflow: hidden;
-    white-space: nowrap;
-    background-color: black;
-    color: white;
-    font-family: 'custom';
-    font-size: 1.2rem;
-    padding: 0.2em 0;
-    border-bottom: 1px solid white;
-    animation: ticker-scroll 60s linear infinite;
-}
-
-@keyframes ticker-scroll {
-    from { transform: translateX(0); }
-    to   { transform: translateX(-50%); }
-}
-
 @keyframes trail-fade {
     from {
         opacity: 0.4;
