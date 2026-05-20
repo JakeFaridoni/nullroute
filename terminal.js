@@ -2,8 +2,7 @@ import { player, sessionTargets } from './user-creation.js';
 import { beepSound, clackSound, playSound } from './boot/boot.js';
 import { contractBoard, acceptContract } from './contracts.js';
 import { statusConnection, statusBalance } from './main.js';
-import { apiGetStocks, apiBuyStock, apiSellStock } from './api.js';
-import { apiSaveGame } from './api.js';
+import { apiGetStocks, apiBuyStock, apiSellStock, apiSaveGame } from './api.js';
 
 let connectedTo = null;
 
@@ -656,7 +655,7 @@ async function cmdBuy(args) {
 
     player.portfolio = result.portfolio;
     player.balance  -= result.spent;
-    await saveGame(player, sessionTargets);
+    await apiSaveGame(player, sessionTargets);
 
     statusBalance.textContent = `BAL: ${player.balance}CR`;
 
@@ -707,7 +706,7 @@ async function cmdSell(args) {
 
     player.portfolio = result.portfolio;
     player.balance  += result.earned;
-    await saveGame(player, sessionTargets);
+    await apiSaveGame(player, sessionTargets);
 
     statusBalance.textContent = `BAL: ${player.balance}CR`;
 
