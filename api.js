@@ -179,6 +179,24 @@ export async function apiAcceptContract(contractId) {
     return apiFetch(`/contracts/${contractId}/accept`, { method: 'POST' });
 }
 
+export async function apiGetLeaderboard() {
+    return apiFetch('/operators/leaderboard');
+}
+
+export async function apiChangePassword(currentPassword, newPassword) {
+    return apiFetch('/save/password', {
+        method: 'PATCH',
+        body: JSON.stringify({ currentPassword, newPassword }),
+    });
+}
+
+export async function apiDeleteAccount(password, confirm) {
+    return apiFetch('/save', {
+        method: 'DELETE',
+        body: JSON.stringify({ password, confirm }),
+    });
+}
+
 // ── ADMIN / GM ────────────────────────────────────────────────────────────────
 //
 // Game-master operations.  All no-ops locally; the GM dashboard will call

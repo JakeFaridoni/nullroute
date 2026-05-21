@@ -1,8 +1,8 @@
 import { player, sessionTargets } from './user-creation.js';
 import { beepSound, clackSound, playSound } from './boot/boot.js';
 import { contractBoard, acceptContract } from './contracts.js';
-import { statusConnection, statusBalance, terminalContent } from './main.js';
-import { apiGetStocks, apiBuyStock, apiSellStock, apiSaveGame } from './api.js';
+import { statusConnection, statusBalance } from './main.js';
+import { apiGetStocks, apiBuyStock, apiSellStock, apiSaveGame, apiGetLeaderboard, apiChangePassword, apiDeleteAccount } from './api.js';
 
 let connectedTo = null;
 
@@ -120,7 +120,7 @@ function printPromptLine(raw) {
     pre.textContent = `${player.handle}@${player.id} > ${raw}`;
     // insert before the input line so it appears above it
     container.insertBefore(pre, inputLine);
-    
+
     scrollToBottom();
 }
 
@@ -142,7 +142,7 @@ export function print(text) {
     const pre = document.createElement('pre');
     pre.textContent = text;
     container.insertBefore(pre, inputLine);
-    
+
     scrollToBottom();
 }
 
@@ -150,7 +150,7 @@ export function printBlank() {
     const pre = document.createElement('pre');
     pre.innerHTML = '&nbsp;';
     container.insertBefore(pre, inputLine);
-    
+
     scrollToBottom();
 }
 
@@ -163,7 +163,7 @@ function typeLine(text) {
         pre.appendChild(textSpan);
         pre.appendChild(dotsSpan);
         container.insertBefore(pre, inputLine);
-        
+
 
         const tw = new Typewriter(dotsSpan, { delay: 30, cursor: '' });
         tw.typeString('...').callFunction(resolve).start();
@@ -184,16 +184,16 @@ function scrollToBottom() {
 // ── COMMAND REGISTRY ──────────────────────────────────
 
 const commands = {
-    help: cmdHelp,
-    clear: cmdClear,
-    status: cmdStatus,
-    tools: cmdTools,
-    log: cmdLog,
-    whoami: cmdWhoami,
-    exit: cmdExit,
-    connect: cmdConnect,
+    help:       cmdHelp,
+    clear:      cmdClear,
+    status:     cmdStatus,
+    tools:      cmdTools,
+    log:        cmdLog,
+    whoami:     cmdWhoami,
+    exit:       cmdExit,
+    connect:    cmdConnect,
     disconnect: cmdDisconnect,
-    accept: cmdAccept,
+    accept:     cmdAccept,
 };
 
 // ── COMMANDS ──────────────────────────────────────────
@@ -204,31 +204,27 @@ async function cmdConnect(args) {
         return;
     }
 
-
     const target = args[0]?.toUpperCase();
     if (!target) {
-        print('USAGE: CONNECT [ NULLROUTE | STOCKMARKET | IP ]');
+        print('USAGE: CONNECT [NULLROUTE | STOCKMARKET | IP]');
         return;
     }
 
     if (target === 'NULLROUTE') {
         await connectNullroute();
-        statusConnection.textContent = `CONNECTION: ${connectedTo}`;
         return;
     }
 
     if (target === 'STOCKMARKET') {
         await connectStockMarket();
-        statusConnection.textContent = `CONNECTION: ${connectedTo}`;
         return;
     }
 
-    print(`USAGE: CONNECT [ NULLROUTE | STOCKMARKET | IP ]`);
-    // full target connection logic comes later
+    print('USAGE: CONNECT [NULLROUTE | STOCKMARKET | IP]');
 }
 cmdConnect.description = 'CONNECT TO A HOST.';
 
-async function cmdDisconnect(args) {
+async function cmdDisconnect() {
     if (!connectedTo) {
         print('NOT CONNECTED TO ANY HOST.');
         return;
@@ -259,31 +255,510 @@ async function cmdDisconnect(args) {
         statusConnection.textContent = 'CONNECTION: NONE';
         return;
     }
-
-    // full target disconnect logic comes later
 }
-cmdDisconnect.description = 'DISCONNECT FROM HOST';
+cmdDisconnect.description = 'DISCONNECT FROM HOST.';
 
-// NULLROUTE service connection
+function cmdHelp() {
+    printBlank();
+    print('AVAILABLE COMMANDS:');
+    printBlank();
+    for (const [name, fn] of Object.entries(commands)) {
+        print(`  ${name.toUpperCase().padEnd(16)}${fn.description ?? ''}`);
+        printBlank();
+    }
+}
+cmdHelp.description = 'LIST COMMANDS.';
+
+async function cmdExit() {
+    printBlank();
+    await typeLine('LOGGING OUT');
+    await new Promise(r => setTimeout(r, 1500));
+    playSound(beepSound);
+    await new Promise(r => setTimeout(r, 500));
+    window.location.reload();
+}
+cmdExit.description = 'EXIT THE CURRENT SESSION.';
+
+function cmdClear() {
+    while (container.firstChild !== inputLine) {
+        container.removeChild(container.firstChild);
+    }
+}
+cmdClear.description = 'CLEAR THE TERMINAL.';
+
+function cmdWhoami() {
+    printBlank();
+    print(`HANDLE:      ${player.handle}`);
+    print(`ID:          ${player.id}`);
+    print(`CLEARANCE:   TIER ${player.clearance}`);
+    print(`AFFILIATION: ${player.affiliation}`);
+    print(`BALANCE:     ${player.balance} CR`);
+    printBlank();
+}
+cmdWhoami.description = 'DISPLAY OPERATOR INFO.';
+
+function cmdStatus() {
+    const ram     = player.hardware.ram;
+    const storage = player.hardware.storage;
+    const bw      = player.hardware.bandwidth;
+
+    printBlank();
+    print('SYSTEM STATUS');
+    printBlank();
+    print(`CPU:       ${player.hardware.cpu.name} @ ${player.hardware.cpu.clockSpeed}MHZ`);
+    printBlank();
+    print(`RAM:       ${ram.usedRAM}K / ${ram.totalRAM}K USED`);
+    print(`           ${ram.availableRAM}K AVAILABLE`);
+    printBlank();
+    print(`STORAGE:   ${storage.name}`);
+    print(`           ${storage.usedSize}MB / ${storage.totalSize}MB USED`);
+    print(`           ${storage.availableSize}MB AVAILABLE`);
+    printBlank();
+    print(`BANDWIDTH: UP   ${bw.upload} KB/S`);
+    print(`           DOWN ${bw.download} KB/S`);
+    printBlank();
+    print(`TRACE:     ${(player.traceBuffer / 1000).toFixed(0)}S`);
+    printBlank();
+}
+cmdStatus.description = 'DISPLAY SYSTEM HARDWARE.';
+
+function cmdTools() {
+    printBlank();
+    print('INSTALLED TOOLS:');
+    printBlank();
+
+    if (player.tools.length === 0) {
+        print('  NO TOOLS INSTALLED.');
+        printBlank();
+        return;
+    }
+
+    print(`  ${'NAME'.padEnd(16)}${'LVL'.padEnd(8)}${'RAM'.padEnd(12)}${'SIZE'.padEnd(10)}STATUS`);
+    printBlank();
+
+    for (const tool of player.tools) {
+        const name   = tool.name.toUpperCase().padEnd(16);
+        const level  = `LVL ${tool.level}`.padEnd(8);
+        const ram    = `${tool.ramUsage}K`.padEnd(12);
+        const size   = `${tool.size}MB`.padEnd(10);
+        const status = tool.active ? 'ACTIVE' : 'INACTIVE';
+        print(`  ${name}${level}${ram}${size}${status}`);
+    }
+
+    printBlank();
+    print(`  ${player.tools.length} TOOL(S) INSTALLED.`);
+    printBlank();
+}
+cmdTools.description = 'LIST INSTALLED TOOLS.';
+
+function cmdLog(args) {
+    const pageSize = 10;
+    const page     = parseInt(args[0]) || 1;
+    const total    = player.log.length;
+
+    if (total === 0) {
+        print('NO LOG ENTRIES FOUND.');
+        return;
+    }
+
+    const totalPages  = Math.ceil(total / pageSize);
+    const clampedPage = Math.min(Math.max(page, 1), totalPages);
+    const start       = (clampedPage - 1) * pageSize;
+    const end         = Math.min(start + pageSize, total);
+    const entries     = player.log.slice(start, end);
+
+    printBlank();
+    print(`SYSTEM LOG  —  PAGE ${clampedPage}/${totalPages}`);
+    printBlank();
+
+    for (const entry of entries) {
+        print(`  ${entry.date}  ${entry.type.padEnd(14)}`);
+    }
+
+    printBlank();
+
+    if (totalPages > 1) {
+        print(`  USE 'LOG [PAGE]' TO NAVIGATE. SHOWING ${start + 1}-${end} OF ${total}.`);
+        printBlank();
+    }
+}
+cmdLog.description = 'VIEW SYSTEM LOG.';
+
+async function cmdAccept(args) {
+    if (connectedTo !== 'NULLROUTE') {
+        print('NOT CONNECTED TO NULLROUTE.');
+        return;
+    }
+
+    const id = args[0]?.toUpperCase();
+    if (!id) {
+        print('USAGE: ACCEPT [CONTRACT ID]');
+        return;
+    }
+
+    const result = await acceptContract(id, sessionTargets);
+
+    printBlank();
+    if (!result.ok) {
+        print(`FAILED: ${result.reason}`);
+        return;
+    }
+
+    const c = result.contract;
+    printBlank();
+    print(`CONTRACT ${c.id} ACCEPTED.`);
+    printBlank();
+    print(`TARGET:    ${c.target}`);
+    print(`OBJECTIVE: ${c.objective} — ${c.description}`);
+    print(`PAYOUT:    ${c.payout.toLocaleString()} CR`);
+    print(`SECURITY:  MON ${c.security.monitor}  PRX ${c.security.proxy}  FW ${c.security.firewall}`);
+    printBlank();
+    print('CONTRACT DETAILS SENT TO INBOX.');
+    printBlank();
+}
+cmdAccept.description = 'ACCEPT A CONTRACT.';
+
+// ── NULLROUTE ─────────────────────────────────────────
+
+let _fullCommands  = null;
+let _nullroutePage = 'menu';
+
 async function connectNullroute() {
     connectedTo = 'NULLROUTE';
-
-    // swap command registry to NULLROUTE-only commands
-    setNullrouteMode(true);
 
     printBlank();
     await typeLine('ROUTING TO NULLROUTE SERVICES');
     await typeLine('AUTHENTICATING OPERATOR');
     await typeLine('ESTABLISHING SECURE CHANNEL');
-    clearTerminal();
     printBlank();
-    print('NULLROUTE CONTRACT BOARD');
+
+    setNullrouteMode(true, 'menu');
+    await printNullrouteMenu();
+
+    statusConnection.textContent = 'CONNECTION: NULLROUTE';
+}
+
+async function printNullrouteMenu() {
+    _nullroutePage = 'menu';
+    setNullrouteMode(true, 'menu');
+
     printBlank();
-    printContractBoard();
+    print('NULLROUTE SERVICES');
     printBlank();
-    print('COMMANDS: ACCEPT [ ID ]  |  DISCONNECT');
+    print('  NEWS          GLOBAL NETWORK ACTIVITY');
+    print('  CONTRACTS     AVAILABLE CONTRACT BOARD');
+    print('  SOFTWARE      SOFTWARE MARKETPLACE');
+    print('  HARDWARE      HARDWARE MARKETPLACE');
+    print('  OPERATORS     OPERATOR LEADERBOARD');
+    print('  NODE          YOUR OPERATOR PROFILE');
+    printBlank();
+    print('  DISCONNECT    EXIT NULLROUTE');
     printBlank();
 }
+
+function printNewsBoard() {
+    _nullroutePage = 'news';
+    setNullrouteMode(true, 'news');
+
+    printBlank();
+    print('NULLROUTE // NETWORK NEWS');
+    printBlank();
+    print('  NO EVENTS RECORDED.');
+    printBlank();
+    print('  BACK    RETURN TO MENU');
+    printBlank();
+}
+
+function printContractBoard() {
+    _nullroutePage = 'contracts';
+    setNullrouteMode(true, 'contracts');
+
+    printBlank();
+    print('NULLROUTE // CONTRACT BOARD');
+    printBlank();
+
+    if (contractBoard.length === 0) {
+        print('  NO CONTRACTS AVAILABLE.');
+        printBlank();
+    } else {
+        print(`  ${'ID'.padEnd(12)}${'OBJECTIVE'.padEnd(14)}${'DIFFICULTY'.padEnd(12)}PAYOUT`);
+        printBlank();
+
+        for (const c of contractBoard) {
+            if (c.status === 'EXPIRED') continue;
+
+            if (c.difficulty > player.clearance) {
+                print(`  ${'██████████'.padEnd(12)}${'██████████'.padEnd(14)}${'██'.padEnd(12)}██████`);
+                printBlank();
+                continue;
+            }
+
+            const id         = c.id.padEnd(12);
+            const objective  = c.objective.padEnd(14);
+            const difficulty = `TIER ${c.difficulty}`.padEnd(12);
+            const payout     = `${c.payout.toLocaleString()} CR`;
+            const status     = c.status !== 'AVAILABLE' ? `  [ ${c.status} ]` : '';
+
+            print(`  ${id}${objective}${difficulty}${payout}${status}`);
+            printBlank();
+        }
+    }
+
+    print('  ACCEPT [ID]    ACCEPT A CONTRACT');
+    print('  BACK           RETURN TO MENU');
+    printBlank();
+}
+
+function printSoftwareBoard() {
+    _nullroutePage = 'software';
+    setNullrouteMode(true, 'software');
+
+    printBlank();
+    print('NULLROUTE // SOFTWARE MARKETPLACE');
+    printBlank();
+    print('  COMING SOON.');
+    printBlank();
+    print('  BACK    RETURN TO MENU');
+    printBlank();
+}
+
+function printHardwareBoard() {
+    _nullroutePage = 'hardware';
+    setNullrouteMode(true, 'hardware');
+
+    printBlank();
+    print('NULLROUTE // HARDWARE MARKETPLACE');
+    printBlank();
+    print('  COMING SOON.');
+    printBlank();
+    print('  BACK    RETURN TO MENU');
+    printBlank();
+}
+
+async function printOperatorBoard() {
+    _nullroutePage = 'operators';
+    setNullrouteMode(true, 'operators');
+
+    printBlank();
+    print('NULLROUTE // OPERATOR LEADERBOARD');
+    printBlank();
+
+    const result = await apiGetLeaderboard();
+
+    if (!result.ok) {
+        print('  FAILED TO FETCH LEADERBOARD.');
+        printBlank();
+        print('  BACK    RETURN TO MENU');
+        printBlank();
+        return;
+    }
+
+    print(`  ${'RANK'.padEnd(6)}${'HANDLE'.padEnd(16)}${'ID'.padEnd(12)}${'CLEARANCE'.padEnd(12)}BALANCE`);
+    printBlank();
+
+    result.operators.forEach((op, i) => {
+        const rank      = `#${i + 1}`.padEnd(6);
+        const handle    = op.handle.padEnd(16);
+        const id        = op.id.padEnd(12);
+        const clearance = `TIER ${op.clearance}`.padEnd(12);
+        const balance   = `${Number(op.balance).toLocaleString()} CR`;
+        const marker    = op.handle === player.handle ? ' ◄' : '';
+
+        print(`  ${rank}${handle}${id}${clearance}${balance}${marker}`);
+        printBlank();
+    });
+
+    print('  BACK    RETURN TO MENU');
+    printBlank();
+}
+
+async function printNodeBoard() {
+    _nullroutePage = 'node';
+    setNullrouteMode(true, 'node');
+
+    printBlank();
+    print('NULLROUTE // NODE PROFILE');
+    printBlank();
+    print(`  HANDLE:      ${player.handle}`);
+    print(`  ID:          ${player.id}`);
+    print(`  CLEARANCE:   TIER ${player.clearance}`);
+    print(`  AFFILIATION: ${player.affiliation}`);
+    print(`  BALANCE:     ${player.balance} CR`);
+    printBlank();
+    print('  CHANGEPASS   CHANGE YOUR PASSWORD');
+    print('  DELETE       DELETE YOUR ACCOUNT');
+    print('  BACK         RETURN TO MENU');
+    printBlank();
+}
+
+async function cmdChangePass() {
+    // prompt inline in the terminal using a locked input sequence
+    printBlank();
+    print('CHANGE PASSWORD');
+    printBlank();
+
+    const current = await terminalPrompt('CURRENT PASSWORD:', true);
+    const next    = await terminalPrompt('NEW PASSWORD:', true);
+    const confirm = await terminalPrompt('CONFIRM PASSWORD:', true);
+
+    printBlank();
+
+    if (next !== confirm) {
+        print('PASSWORDS DO NOT MATCH.');
+        printBlank();
+        return;
+    }
+
+    const result = await apiChangePassword(current, next);
+
+    if (!result.ok) {
+        print(`FAILED: ${result.reason}`);
+        printBlank();
+        return;
+    }
+
+    print('PASSWORD UPDATED.');
+    printBlank();
+}
+cmdChangePass.description = 'CHANGE YOUR PASSWORD.';
+
+async function cmdDeleteAccount() {
+    printBlank();
+    print('DELETE ACCOUNT');
+    print('THIS ACTION IS PERMANENT. ALL DATA WILL BE LOST.');
+    printBlank();
+
+    const handle  = await terminalPrompt('CONFIRM HANDLE:');
+    const pass    = await terminalPrompt('CONFIRM PASSWORD:', true);
+    const confirm = await terminalPrompt('CONFIRM PASSWORD AGAIN:', true);
+
+    printBlank();
+
+    if (handle !== player.handle) {
+        print('HANDLE MISMATCH. ABORTED.');
+        printBlank();
+        return;
+    }
+
+    if (pass !== confirm) {
+        print('PASSWORDS DO NOT MATCH. ABORTED.');
+        printBlank();
+        return;
+    }
+
+    const result = await apiDeleteAccount(pass, confirm);
+
+    if (!result.ok) {
+        print(`FAILED: ${result.reason}`);
+        printBlank();
+        return;
+    }
+
+    print('ACCOUNT DELETED. TERMINATING SESSION.');
+    printBlank();
+    await new Promise(r => setTimeout(r, 2000));
+    window.location.reload();
+}
+cmdDeleteAccount.description = 'DELETE YOUR ACCOUNT.';
+
+async function cmdBack() {
+    await printNullrouteMenu();
+}
+cmdBack.description = 'RETURN TO MENU.';
+
+// Inline terminal prompt — locks input, renders a prompt line, resolves on Enter
+function terminalPrompt(promptText, masked = false) {
+    return new Promise(resolve => {
+        inputLocked = true;
+
+        const pre = document.createElement('pre');
+        pre.textContent = `  ${promptText} `;
+        container.insertBefore(pre, inputLine);
+
+        let value = '';
+        let displaySpan = document.createElement('span');
+        pre.appendChild(displaySpan);
+
+        const promptCursor = document.createElement('span');
+        promptCursor.textContent = '_';
+        promptCursor.style.animation = 'blink 0.7s step-end infinite';
+        pre.appendChild(promptCursor);
+
+        const handler = (e) => {
+            if (!['Shift', 'Control', 'Alt', 'Meta', 'CapsLock'].includes(e.key)) {
+                playSound(clackSound);
+            }
+
+            if (e.key === 'Enter' && value.length > 0) {
+                promptCursor.remove();
+                document.removeEventListener('keydown', handler);
+                inputLocked = false;
+                resolve(value);
+            } else if (e.key === 'Backspace') {
+                value = value.slice(0, -1);
+                displaySpan.textContent = masked ? '*'.repeat(value.length) : value;
+            } else if (e.key.length === 1) {
+                value += e.key.toUpperCase();
+                displaySpan.textContent = masked ? '*'.repeat(value.length) : value;
+            }
+
+            scrollToBottom();
+        };
+
+        document.addEventListener('keydown', handler);
+        scrollToBottom();
+    });
+}
+
+function setNullrouteMode(active, page = 'menu') {
+    if (active) {
+        // Always snapshot full commands before modifying
+        // Only snapshot once — don't overwrite the snapshot when switching pages
+        if (!_fullCommands) _fullCommands = { ...commands };
+
+        // Clear current registry
+        for (const key of Object.keys(commands)) delete commands[key];
+
+        // Always available in NULLROUTE
+        commands.disconnect = cmdDisconnect;
+        commands.exit       = cmdExit;
+
+        if (page === 'menu') {
+            commands.news      = printNewsBoard;
+            commands.contracts = printContractBoard;
+            commands.software  = printSoftwareBoard;
+            commands.hardware  = printHardwareBoard;
+            commands.operators = printOperatorBoard;
+            commands.node      = printNodeBoard;
+        }
+
+        if (page === 'news' || page === 'contracts' || page === 'software' ||
+            page === 'hardware' || page === 'operators' || page === 'node') {
+            commands.back = cmdBack;
+        }
+
+        if (page === 'contracts') {
+            commands.accept = cmdAccept;
+        }
+
+        if (page === 'node') {
+            commands.changepass = cmdChangePass;
+            commands.delete     = cmdDeleteAccount;
+        }
+
+    } else {
+        if (_fullCommands) {
+            for (const key of Object.keys(commands)) delete commands[key];
+            Object.assign(commands, _fullCommands);
+            _fullCommands = null;
+        }
+    }
+}
+
+// ── STOCK MARKET ──────────────────────────────────────────────────────────────
+
+let _stockData      = [];
+let _stockPollTimer = null;
 
 async function connectStockMarket() {
     connectedTo = 'STOCKMARKET';
@@ -304,16 +779,12 @@ async function connectStockMarket() {
     }
 
     _stockData = result.stocks;
-    clearTerminal();
     printStockBoard();
 
-
-    // poll every 30 seconds while connected
     _stockPollTimer = setInterval(async () => {
         const refresh = await apiGetStocks();
         if (refresh.ok) {
             _stockData = refresh.stocks;
-            // update ticker only — don't reprint the whole board
 
         }
     }, 30000);
@@ -321,257 +792,20 @@ async function connectStockMarket() {
     statusConnection.textContent = 'CONNECTION: STOCKMARKET';
 }
 
-function printContractBoard() {
-    printBlank();
-
-    if (contractBoard.length === 0) {
-        print('  NO CONTRACTS AVAILABLE.');
-        printBlank();
-        return;
-    }
-
-    print(`  ${'ID'.padEnd(12)}${'OBJECTIVE'.padEnd(14)}PAYOUT`);
-    printBlank();
-
-    for (const c of contractBoard) {
-        if (c.status === 'EXPIRED') continue;
-
-        if (c.difficulty > player.clearance) {
-            // redacted
-            print(`  ${'██████████'.padEnd(12)}${'██████████'.padEnd(14)}██████`);
-            printBlank();
-            continue;
-        }
-
-        const id = c.id.padEnd(12);
-        const objective = c.objective.padEnd(14);
-        const payout = `${c.payout.toLocaleString()} CR`;
-        const status = c.status !== 'AVAILABLE' ? `  [ ${c.status} ]` : '';
-
-        print(`  ${id}${objective}${payout}${status}`);
-        printBlank();
-    }
-
-    printBlank();
-}
-
-// NULLROUTE mode to restrict command usage
-let _fullCommands = null;
-
-function setNullrouteMode(active) {
-    if (active) {
-        _fullCommands = { ...commands };
-        // wipe all commands except the allowed three
-        for (const key of Object.keys(commands)) {
-            if (!['accept', 'disconnect', 'exit'].includes(key)) {
-                delete commands[key];
-            }
-        }
-    } else {
-        // restore full registry
-        if (_fullCommands) {
-            Object.assign(commands, _fullCommands);
-            _fullCommands = null;
-        }
-    }
-}
-
-// Accept contracts
-async function cmdAccept(args) {
-    if (connectedTo !== 'NULLROUTE') {
-        print('NOT CONNECTED TO NULLROUTE.');
-        return;
-    }
-
-    const id = args[0]?.toUpperCase();
-    if (!id) {
-        print('USAGE: ACCEPT [ CONTRACT ID ]');
-        return;
-    }
-
-    const result = await acceptContract(id, sessionTargets);
-
-    printBlank();
-    if (!result.ok) {
-        print(`FAILED: ${result.reason}`);
-        return;
-    }
-
-    const c = result.contract;
-    printBlank();
-    print(`CONTRACT ${c.id} ACCEPTED.`);
-    printBlank();
-    print(`TARGET:    ${c.target}`);
-    print(`OBJECTIVE: ${c.objective} — ${c.description}`);
-    print(`PAYOUT:    ${c.payout.toLocaleString()} CR`);
-    print(`SECURITY:  MONITOR ${c.security.monitor}  PROXY ${c.security.proxy}  FIREWALL ${c.security.firewall}`);
-    printBlank();
-    print('CONTRACT DETAILS SENT TO INBOX.');
-    printBlank();
-}
-cmdAccept.description = 'ACCEPT A CONTRACT.';
-
-
-// display commands
-function cmdHelp() {
-    printBlank();
-    print('AVAILABLE COMMANDS:');
-    printBlank();
-    for (const [name, fn] of Object.entries(commands)) {
-        print(`  ${name.toUpperCase().padEnd(16)}${fn.description ?? ''}`);
-        printBlank();
-    }
-}
-cmdHelp.description = 'LIST COMMANDS';
-
-async function cmdExit() {
-    printBlank();
-    typeLine('LOGING OUT');
-    await new Promise(r => setTimeout(r, 1500));
-    playSound(beepSound);
-    await new Promise(r => setTimeout(r, 500));
-    window.location.reload();
-}
-cmdExit.description = 'EXIT THE CURRENT SESSION';
-
-function cmdClear() {
-    // remove everything except the input line
-    while (container.firstChild !== inputLine) {
-        container.removeChild(container.firstChild);
-    }
-}
-cmdClear.description = 'CLEAR THE TERMINAL';
-
-function cmdWhoami() {
-    printBlank();
-    print(`HANDLE:            ${player.handle}`);
-    print(`ID:                ${player.id}`);
-    print(`CLEARANCE:         TIER ${player.clearance}`);
-    print(`AFFILIATION:       ${player.affiliation}`);
-    print(`BALANCE:           ${player.balance} CR`);
-    printBlank();
-}
-cmdWhoami.description = 'DISPLAY OPERATOR INFO';
-
-function cmdStatus() {
-    const ram = player.hardware.ram;
-    const storage = player.hardware.storage;
-    const bw = player.hardware.bandwidth;
-
-    printBlank();
-    print('SYSTEM STATUS');
-    printBlank();
-
-    print(`CPU:               ${player.hardware.cpu.name} @ ${player.hardware.cpu.clockSpeed}MHZ`);
-    printBlank();
-
-    print(`RAM:               ${ram.usedRAM}K / ${ram.totalRAM}K USED`);
-    print(`                   ${ram.availableRAM}K AVAILABLE`);
-    printBlank();
-
-    print(`STORAGE:           ${storage.name}`);
-    print(`                   ${storage.usedSize}MB / ${storage.totalSize}MB USED`);
-    print(`                   ${storage.availableSize}MB AVAILABLE`);
-    printBlank();
-
-    print(`BANDWIDTH:         UP   ${bw.upload} KB/S`);
-    print(`                   DOWN ${bw.download} KB/S`);
-    printBlank();
-
-    print(`TRACE BUFFER:      ${(player.traceBuffer / 1000).toFixed(0)}S`);
-    printBlank();
-}
-cmdStatus.description = 'DISPLAY SYSTEM HARDWARE';
-
-function cmdTools() {
-    printBlank();
-    print('INSTALLED TOOLS:');
-    printBlank();
-
-    if (player.tools.length === 0) {
-        print('  NO TOOLS INSTALLED.');
-        printBlank();
-        return;
-    }
-
-    // header row
-    print(`  ${'NAME'.padEnd(16)}${'LVL'.padEnd(8)}${'RAM'.padEnd(12)}${'SIZE'.padEnd(10)}STATUS`);
-    printBlank();
-
-    for (const tool of player.tools) {
-        const name = tool.name.toUpperCase().padEnd(16);
-        const level = `LVL ${tool.level}`.padEnd(8);
-        const ram = `${tool.ramUsage}K`.padEnd(12);
-        const size = `${tool.size}MB`.padEnd(10);
-        const status = tool.active ? 'ACTIVE' : 'INACTIVE';
-        print(`  ${name}${level}${ram}${size}${status}`);
-    }
-
-    printBlank();
-    print(`  ${player.tools.length} TOOL(S) INSTALLED.`);
-    printBlank();
-}
-cmdTools.description = 'LIST INSTALLED TOOLS';
-
-function cmdLog(args) {
-    const pageSize = 10;
-    const page = parseInt(args[0]) || 1;
-    const total = player.log.length;
-
-    if (total === 0) {
-        print('NO LOG ENTRIES FOUND.');
-        return;
-    }
-
-    const totalPages = Math.ceil(total / pageSize);
-    const clampedPage = Math.min(Math.max(page, 1), totalPages);
-    const start = (clampedPage - 1) * pageSize;
-    const end = Math.min(start + pageSize, total);
-    const entries = player.log.slice(start, end);
-
-    printBlank();
-    print(`SYSTEM LOG  —  PAGE ${clampedPage}/${totalPages}`);
-    printBlank();
-
-    for (const entry of entries) {
-        const type = entry.type.padEnd(14);
-        const desc = entry.desc
-            ? entry.desc
-            : entry.file
-                ? `FILE: ${entry.file}`
-                : '';
-        print(`  ${entry.date}  ${type}`);
-    }
-
-    printBlank();
-
-    if (totalPages > 1) {
-        print(`  USE 'LOG [PAGE]' TO NAVIGATE. SHOWING ${start + 1}-${end} OF ${total}.`);
-        printBlank();
-    }
-}
-cmdLog.description = 'VIEW SYSTEM LOG.';
-
-// ── STOCK MARKET ──────────────────────────────────────────────────────────────
-
-let _stockData = [];       // current prices, fetched on connect
-let _stockPollTimer = null; // refreshes prices every 30s while connected
-
-
 function printStockBoard() {
     printBlank();
     print(`  ${'TICKER'.padEnd(8)}${'COMPANY'.padEnd(24)}${'PRICE'.padEnd(14)}${'CHANGE'.padEnd(12)}${'OWNED'.padEnd(10)}VALUE`);
     printBlank();
 
     for (const s of _stockData) {
-        const ticker = s.ticker.padEnd(8);
+        const ticker  = s.ticker.padEnd(8);
         const company = s.company.padEnd(24);
-        const price = `${parseFloat(s.price).toFixed(2)} CR`.padEnd(14);
-        const diff = parseFloat(s.price) - parseFloat(s.prev_price);
-        const arrow = diff > 0 ? '▲' : diff < 0 ? '▼' : '─';
-        const change = `${arrow} ${Math.abs(diff).toFixed(2)}`.padEnd(12);
-        const owned = (player.portfolio?.[s.ticker] ?? 0);
-        const value = owned > 0 ? `${(owned * parseFloat(s.price)).toFixed(0)} CR` : '—';
+        const price   = `${parseFloat(s.price).toFixed(2)} CR`.padEnd(14);
+        const diff    = parseFloat(s.price) - parseFloat(s.prev_price);
+        const arrow   = diff > 0 ? '▲' : diff < 0 ? '▼' : '─';
+        const change  = `${arrow} ${Math.abs(diff).toFixed(2)}`.padEnd(12);
+        const owned   = (player.portfolio?.[s.ticker] ?? 0);
+        const value   = owned > 0 ? `${(owned * parseFloat(s.price)).toFixed(0)} CR` : '—';
 
         print(`  ${ticker}${company}${price}${change}${owned.toString().padEnd(10)}${value}`);
         printBlank();
@@ -584,11 +818,7 @@ function printStockBoard() {
     printBlank();
     print(`  PORTFOLIO VALUE:  ${portfolioValue.toFixed(0)} CR`);
     printBlank();
-    print('  COMMANDS: BUY [ TICKER ] [ AMT ]  ');
-    printBlank();
-    print('            SELL [ TICKER ] [ AMT ]');
-    printBlank();
-    print('            DISCONNECT');
+    print('  COMMANDS: BUY [TICKER] [AMT]  |  SELL [TICKER] [AMT]  |  DISCONNECT');
     printBlank();
 }
 
@@ -602,7 +832,7 @@ async function cmdBuy(args) {
     const amount = parseInt(args[1]);
 
     if (!ticker || !amount || amount < 1) {
-        print('USAGE: BUY [ TICKER ] [ AMOUNT ]');
+        print('USAGE: BUY [TICKER] [AMOUNT]');
         return;
     }
 
@@ -625,7 +855,7 @@ async function cmdBuy(args) {
     }
 
     player.portfolio = result.portfolio;
-    player.balance -= result.spent;
+    player.balance  -= result.spent;
     await apiSaveGame(player, sessionTargets);
 
     statusBalance.textContent = `BAL: ${player.balance}CR`;
@@ -647,7 +877,7 @@ async function cmdSell(args) {
     const amount = parseInt(args[1]);
 
     if (!ticker || !amount || amount < 1) {
-        print('USAGE: SELL [ TICKER ] [ AMOUNT ]');
+        print('USAGE: SELL [TICKER] [AMOUNT]');
         return;
     }
 
@@ -676,7 +906,7 @@ async function cmdSell(args) {
     }
 
     player.portfolio = result.portfolio;
-    player.balance += result.earned;
+    player.balance  += result.earned;
     await apiSaveGame(player, sessionTargets);
 
     statusBalance.textContent = `BAL: ${player.balance}CR`;
@@ -698,12 +928,11 @@ function setStockMarketMode(active) {
                 delete commands[key];
             }
         }
-        commands.buy = cmdBuy;
+        commands.buy  = cmdBuy;
         commands.sell = cmdSell;
-
+        renderTicker();
     } else {
         if (_fullStockCommands) {
-            // clear then restore
             for (const key of Object.keys(commands)) delete commands[key];
             Object.assign(commands, _fullStockCommands);
             _fullStockCommands = null;
