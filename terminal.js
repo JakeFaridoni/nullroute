@@ -184,16 +184,16 @@ function scrollToBottom() {
 // ── COMMAND REGISTRY ──────────────────────────────────
 
 const commands = {
-    help:       cmdHelp,
-    clear:      cmdClear,
-    status:     cmdStatus,
-    tools:      cmdTools,
-    log:        cmdLog,
-    whoami:     cmdWhoami,
-    exit:       cmdExit,
-    connect:    cmdConnect,
+    help: cmdHelp,
+    clear: cmdClear,
+    status: cmdStatus,
+    tools: cmdTools,
+    log: cmdLog,
+    whoami: cmdWhoami,
+    exit: cmdExit,
+    connect: cmdConnect,
     disconnect: cmdDisconnect,
-    accept:     cmdAccept,
+    accept: cmdAccept,
 };
 
 // ── COMMANDS ──────────────────────────────────────────
@@ -233,12 +233,12 @@ async function cmdDisconnect() {
     const wasConnected = connectedTo;
     connectedTo = null;
 
-    cmdClear();
     if (wasConnected === 'NULLROUTE') {
         setNullrouteMode(false);
         printBlank();
         await typeLine('CLOSING SECURE CHANNEL');
         await typeLine('SCRUBBING SESSION DATA');
+        cmdClear();
         printBlank();
         print('DISCONNECTED FROM NULLROUTE.');
         printBlank();
@@ -250,6 +250,7 @@ async function cmdDisconnect() {
         setStockMarketMode(false);
         printBlank();
         await typeLine('CLOSING MARKET CONNECTION');
+        cmdClear();
         printBlank();
         print('DISCONNECTED FROM STOCK MARKET.');
         printBlank();
@@ -299,9 +300,9 @@ function cmdWhoami() {
 cmdWhoami.description = 'DISPLAY OPERATOR INFO.';
 
 function cmdStatus() {
-    const ram     = player.hardware.ram;
+    const ram = player.hardware.ram;
     const storage = player.hardware.storage;
-    const bw      = player.hardware.bandwidth;
+    const bw = player.hardware.bandwidth;
 
     printBlank();
     print('SYSTEM STATUS');
@@ -338,10 +339,10 @@ function cmdTools() {
     printBlank();
 
     for (const tool of player.tools) {
-        const name   = tool.name.toUpperCase().padEnd(16);
-        const level  = `LVL ${tool.level}`.padEnd(8);
-        const ram    = `${tool.ramUsage}K`.padEnd(12);
-        const size   = `${tool.size}MB`.padEnd(10);
+        const name = tool.name.toUpperCase().padEnd(16);
+        const level = `LVL ${tool.level}`.padEnd(8);
+        const ram = `${tool.ramUsage}K`.padEnd(12);
+        const size = `${tool.size}MB`.padEnd(10);
         const status = tool.active ? 'ACTIVE' : 'INACTIVE';
         print(`  ${name}${level}${ram}${size}${status}`);
     }
@@ -354,19 +355,19 @@ cmdTools.description = 'LIST INSTALLED TOOLS.';
 
 function cmdLog(args) {
     const pageSize = 10;
-    const page     = parseInt(args[0]) || 1;
-    const total    = player.log.length;
+    const page = parseInt(args[0]) || 1;
+    const total = player.log.length;
 
     if (total === 0) {
         print('NO LOG ENTRIES FOUND.');
         return;
     }
 
-    const totalPages  = Math.ceil(total / pageSize);
+    const totalPages = Math.ceil(total / pageSize);
     const clampedPage = Math.min(Math.max(page, 1), totalPages);
-    const start       = (clampedPage - 1) * pageSize;
-    const end         = Math.min(start + pageSize, total);
-    const entries     = player.log.slice(start, end);
+    const start = (clampedPage - 1) * pageSize;
+    const end = Math.min(start + pageSize, total);
+    const entries = player.log.slice(start, end);
 
     printBlank();
     print(`SYSTEM LOG  —  PAGE ${clampedPage}/${totalPages}`);
@@ -421,7 +422,7 @@ cmdAccept.description = 'ACCEPT A CONTRACT.';
 
 // ── NULLROUTE ─────────────────────────────────────────
 
-let _fullCommands  = null;
+let _fullCommands = null;
 let _nullroutePage = 'menu';
 
 async function connectNullroute() {
@@ -502,11 +503,11 @@ function printContractBoard() {
                 continue;
             }
 
-            const id         = c.id.padEnd(12);
-            const objective  = c.objective.padEnd(14);
+            const id = c.id.padEnd(12);
+            const objective = c.objective.padEnd(14);
             const difficulty = `TIER ${c.difficulty}`.padEnd(12);
-            const payout     = `${c.payout.toLocaleString()} CR`;
-            const status     = c.status !== 'AVAILABLE' ? `  [ ${c.status} ]` : '';
+            const payout = `${c.payout.toLocaleString()} CR`;
+            const status = c.status !== 'AVAILABLE' ? `  [ ${c.status} ]` : '';
 
             print(`  ${id}${objective}${difficulty}${payout}${status}`);
             printBlank();
@@ -569,12 +570,12 @@ async function printOperatorBoard() {
     printBlank();
 
     result.operators.forEach((op, i) => {
-        const rank      = `#${i + 1}`.padEnd(6);
-        const handle    = op.handle.padEnd(16);
-        const id        = op.id.padEnd(12);
+        const rank = `#${i + 1}`.padEnd(6);
+        const handle = op.handle.padEnd(16);
+        const id = op.id.padEnd(12);
         const clearance = `TIER ${op.clearance}`.padEnd(12);
-        const balance   = `${Number(op.balance).toLocaleString()} CR`;
-        const marker    = op.handle === player.handle ? ' ◄' : '';
+        const balance = `${Number(op.balance).toLocaleString()} CR`;
+        const marker = op.handle === player.handle ? ' ◄' : '';
 
         print(`  ${rank}${handle}${id}${clearance}${balance}${marker}`);
         printBlank();
@@ -611,7 +612,7 @@ async function cmdChangePass() {
     printBlank();
 
     const current = await terminalPrompt('CURRENT PASSWORD:', true);
-    const next    = await terminalPrompt('NEW PASSWORD:', true);
+    const next = await terminalPrompt('NEW PASSWORD:', true);
     const confirm = await terminalPrompt('CONFIRM PASSWORD:', true);
 
     printBlank();
@@ -641,8 +642,8 @@ async function cmdDeleteAccount() {
     print('THIS ACTION IS PERMANENT. ALL DATA WILL BE LOST.');
     printBlank();
 
-    const handle  = await terminalPrompt('CONFIRM HANDLE:');
-    const pass    = await terminalPrompt('CONFIRM PASSWORD:', true);
+    const handle = await terminalPrompt('CONFIRM HANDLE:');
+    const pass = await terminalPrompt('CONFIRM PASSWORD:', true);
     const confirm = await terminalPrompt('CONFIRM PASSWORD AGAIN:', true);
 
     printBlank();
@@ -734,15 +735,15 @@ function setNullrouteMode(active, page = 'menu') {
 
         // Always available in NULLROUTE
         commands.disconnect = cmdDisconnect;
-        commands.exit       = cmdExit;
+        commands.exit = cmdExit;
 
         if (page === 'menu') {
-            commands.news      = printNewsBoard;
+            commands.news = printNewsBoard;
             commands.contracts = printContractBoard;
-            commands.software  = printSoftwareBoard;
-            commands.hardware  = printHardwareBoard;
+            commands.software = printSoftwareBoard;
+            commands.hardware = printHardwareBoard;
             commands.operators = printOperatorBoard;
-            commands.node      = printNodeBoard;
+            commands.node = printNodeBoard;
         }
 
         if (page === 'news' || page === 'contracts' || page === 'software' ||
@@ -756,7 +757,7 @@ function setNullrouteMode(active, page = 'menu') {
 
         if (page === 'node') {
             commands.changepass = cmdChangePass;
-            commands.delete     = cmdDeleteAccount;
+            commands.delete = cmdDeleteAccount;
         }
 
     } else {
@@ -770,7 +771,7 @@ function setNullrouteMode(active, page = 'menu') {
 
 // ── STOCK MARKET ──────────────────────────────────────────────────────────────
 
-let _stockData      = [];
+let _stockData = [];
 let _stockPollTimer = null;
 
 async function connectStockMarket() {
@@ -812,14 +813,14 @@ function printStockBoard() {
     printBlank();
 
     for (const s of _stockData) {
-        const ticker  = s.ticker.padEnd(8);
+        const ticker = s.ticker.padEnd(8);
         const company = s.company.padEnd(24);
-        const price   = `${parseFloat(s.price).toFixed(2)} CR`.padEnd(14);
-        const diff    = parseFloat(s.price) - parseFloat(s.prev_price);
-        const arrow   = diff > 0 ? '▲' : diff < 0 ? '▼' : '─';
-        const change  = `${arrow} ${Math.abs(diff).toFixed(2)}`.padEnd(12);
-        const owned   = (player.portfolio?.[s.ticker] ?? 0);
-        const value   = owned > 0 ? `${(owned * parseFloat(s.price)).toFixed(0)} CR` : '—';
+        const price = `${parseFloat(s.price).toFixed(2)} CR`.padEnd(14);
+        const diff = parseFloat(s.price) - parseFloat(s.prev_price);
+        const arrow = diff > 0 ? '▲' : diff < 0 ? '▼' : '─';
+        const change = `${arrow} ${Math.abs(diff).toFixed(2)}`.padEnd(12);
+        const owned = (player.portfolio?.[s.ticker] ?? 0);
+        const value = owned > 0 ? `${(owned * parseFloat(s.price)).toFixed(0)} CR` : '—';
 
         print(`  ${ticker}${company}${price}${change}${owned.toString().padEnd(10)}${value}`);
         printBlank();
@@ -869,7 +870,7 @@ async function cmdBuy(args) {
     }
 
     player.portfolio = result.portfolio;
-    player.balance  -= result.spent;
+    player.balance -= result.spent;
     await apiSaveGame(player, sessionTargets);
 
     statusBalance.textContent = `BAL: ${player.balance}CR`;
@@ -920,7 +921,7 @@ async function cmdSell(args) {
     }
 
     player.portfolio = result.portfolio;
-    player.balance  += result.earned;
+    player.balance += result.earned;
     await apiSaveGame(player, sessionTargets);
 
     statusBalance.textContent = `BAL: ${player.balance}CR`;
@@ -944,7 +945,7 @@ function setStockMarketMode(active) {
                 delete commands[key];
             }
         }
-        commands.buy  = cmdBuy;
+        commands.buy = cmdBuy;
         commands.sell = cmdSell;
     } else {
         if (_fullStockCommands) {
