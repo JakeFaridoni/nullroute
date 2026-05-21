@@ -233,6 +233,7 @@ async function cmdDisconnect() {
     const wasConnected = connectedTo;
     connectedTo = null;
 
+    cmdClear();
     if (wasConnected === 'NULLROUTE') {
         setNullrouteMode(false);
         printBlank();
