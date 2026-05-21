@@ -460,6 +460,7 @@ function printNewsBoard() {
     _nullroutePage = 'news';
     setNullrouteMode(true, 'news');
 
+    cmdClear();
     printBlank();
     print('NULLROUTE // NETWORK NEWS');
     printBlank();
@@ -473,6 +474,7 @@ function printContractBoard() {
     _nullroutePage = 'contracts';
     setNullrouteMode(true, 'contracts');
 
+    cmdClear();
     printBlank();
     print('NULLROUTE // CONTRACT BOARD');
     printBlank();
@@ -513,6 +515,7 @@ function printSoftwareBoard() {
     _nullroutePage = 'software';
     setNullrouteMode(true, 'software');
 
+    cmdClear();
     printBlank();
     print('NULLROUTE // SOFTWARE MARKETPLACE');
     printBlank();
@@ -526,6 +529,7 @@ function printHardwareBoard() {
     _nullroutePage = 'hardware';
     setNullrouteMode(true, 'hardware');
 
+    cmdClear();
     printBlank();
     print('NULLROUTE // HARDWARE MARKETPLACE');
     printBlank();
@@ -539,6 +543,7 @@ async function printOperatorBoard() {
     _nullroutePage = 'operators';
     setNullrouteMode(true, 'operators');
 
+    cmdClear();
     printBlank();
     print('NULLROUTE // OPERATOR LEADERBOARD');
     printBlank();
@@ -576,6 +581,7 @@ async function printNodeBoard() {
     _nullroutePage = 'node';
     setNullrouteMode(true, 'node');
 
+    cmdClear();
     printBlank();
     print('NULLROUTE // NODE PROFILE');
     printBlank();
@@ -779,6 +785,7 @@ async function connectStockMarket() {
     }
 
     _stockData = result.stocks;
+    cmdClear();
     printStockBoard();
 
     _stockPollTimer = setInterval(async () => {
