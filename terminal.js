@@ -947,7 +947,6 @@ function setStockMarketMode(active) {
         }
         commands.buy  = cmdBuy;
         commands.sell = cmdSell;
-        renderTicker();
     } else {
         if (_fullStockCommands) {
             for (const key of Object.keys(commands)) delete commands[key];
