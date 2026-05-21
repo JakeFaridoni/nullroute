@@ -831,7 +831,9 @@ function printStockBoard() {
     printBlank();
     print(`  PORTFOLIO VALUE:  ${portfolioValue.toFixed(0)} CR`);
     printBlank();
-    print('  COMMANDS: BUY [TICKER] [AMT]  |  SELL [TICKER] [AMT]  |  DISCONNECT');
+    print('  COMMANDS: BUY [TICKER] [AMT]');
+    print('            SELL [TICKER] [AMT]');
+    print('            DISCONNECT');
     printBlank();
 }
 
@@ -856,8 +858,6 @@ async function cmdBuy(args) {
     }
 
     const cost = Math.ceil(parseFloat(stock.price) * amount);
-    printBlank();
-    print(`BUYING ${amount} x ${ticker} @ ${parseFloat(stock.price).toFixed(2)} CR = ${cost} CR`);
 
     const result = await apiBuyStock(ticker, amount);
     printBlank();
@@ -909,8 +909,6 @@ async function cmdSell(args) {
     }
 
     const value = Math.floor(parseFloat(stock.price) * amount);
-    printBlank();
-    print(`SELLING ${amount} x ${ticker} @ ${parseFloat(stock.price).toFixed(2)} CR = ${value} CR`);
 
     const result = await apiSellStock(ticker, amount);
     printBlank();
