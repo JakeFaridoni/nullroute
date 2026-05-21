@@ -873,6 +873,8 @@ async function cmdBuy(args) {
 
     statusBalance.textContent = `BAL: ${player.balance}CR`;
 
+    cmdClear();
+    printStockBoard();
     print(`PURCHASED. SPENT: ${result.spent} CR`);
     print(`NEW BALANCE: ${player.balance} CR`);
     print(`${ticker} OWNED: ${player.portfolio[ticker] ?? 0}`);
@@ -924,6 +926,8 @@ async function cmdSell(args) {
 
     statusBalance.textContent = `BAL: ${player.balance}CR`;
 
+    cmdClear();
+    printStockBoard();
     print(`SOLD. EARNED: ${result.earned} CR`);
     print(`NEW BALANCE: ${player.balance} CR`);
     print(`${ticker} OWNED: ${player.portfolio[ticker] ?? 0}`);
