@@ -442,17 +442,23 @@ async function printNullrouteMenu() {
     _nullroutePage = 'menu';
     setNullrouteMode(true, 'menu');
 
+    cmdClear();
     printBlank();
     print('NULLROUTE SERVICES');
     printBlank();
     print('  NEWS          GLOBAL NETWORK ACTIVITY');
+    printBlank();
     print('  CONTRACTS     AVAILABLE CONTRACT BOARD');
+    printBlank();
     print('  SOFTWARE      SOFTWARE MARKETPLACE');
+    printBlank();
     print('  HARDWARE      HARDWARE MARKETPLACE');
+    printBlank();
     print('  OPERATORS     OPERATOR LEADERBOARD');
+    printBlank();
     print('  NODE          YOUR OPERATOR PROFILE');
     printBlank();
-    print('  DISCONNECT    EXIT NULLROUTE');
+    print('  DISCONNECT    DISCONNECT FROM NULLROUTE');
     printBlank();
 }
 
