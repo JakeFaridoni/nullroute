@@ -1,4 +1,4 @@
-import { player, sessionTargets } from './user-creation.js';
+import { player, sessionTargets, sessionPassword } from './user-creation.js';
 import { beepSound, clackSound, playSound } from './boot/boot.js';
 import { contractBoard, acceptContract } from './contracts.js';
 import { statusConnection, statusBalance } from './main.js';
@@ -1590,7 +1590,7 @@ async function transferFailed() {
     printBlank();
 
     // delete account from DB
-    await apiDeleteAccount(player.password, player.password);
+    await apiDeleteAccount(sessionPassword, sessionPassword);
 
     await new Promise(r => setTimeout(r, 3000));
     window.location.reload();
