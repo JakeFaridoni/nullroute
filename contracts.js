@@ -1,7 +1,7 @@
 import { player, formatDate, sendToInbox } from './user-creation.js';
 import { apiSaveGame } from './api.js';
 
-// ── CONSTANTS ─────────────────────────────────────────
+// ===[ CONSTANTS ]========================================
 
 const CONTRACT_COUNT_MIN = 5;
 const CONTRACT_COUNT_MAX = 10;
@@ -24,7 +24,8 @@ const OBJECTIVE_DESCRIPTIONS = {
     DESTROY:    'TAKE TARGET SYSTEM OFFLINE. LEAVE NOTHING RUNNING.',
 };
 
-// ── THEMED FILE NAMES ─────────────────────────────────
+// ===[ THEMED FILE NAMES ]==============================
+
 
 const DECOY_FILES = {
     DEFAULT:  ['SYSTEM.LOG', 'CONFIG.BAK', 'README.TXT', 'BOOT.CFG', 'KERNEL.DAT', 'TRACE.LOG', 'CACHE.TMP', 'INDEX.DAT', 'PROC.SYS', 'ENV.CFG'],
@@ -90,12 +91,12 @@ function generatePlantFile(contractId) {
     };
 }
 
-// ── STATE ─────────────────────────────────────────────
+// ===[ STATE ]==========================================
 
 export let contractBoard = [];
 export let refreshTimer  = null;
 
-// ── ID GENERATION ─────────────────────────────────────
+// ===[ ID GENERATION ]==================================
 
 function generateContractId(existingIds = []) {
     let id;
@@ -105,7 +106,7 @@ function generateContractId(existingIds = []) {
     return id;
 }
 
-// ── PAYOUT ────────────────────────────────────────────
+// ===[ PAYOUT ]=========================================
 
 function calculatePayout(difficulty, objective) {
     const base       = difficulty * 500;
@@ -113,7 +114,7 @@ function calculatePayout(difficulty, objective) {
     return Math.round(base * multiplier);
 }
 
-// ── GENERATION ────────────────────────────────────────
+// ===[ GENERATION ]=====================================
 
 export function generateContracts(sessionTargets) {
     const usedIds = [
@@ -158,7 +159,7 @@ export function generateContracts(sessionTargets) {
     });
 }
 
-// ── REFRESH TIMER ─────────────────────────────────────
+// ===[ REFRESH TIMER ]==================================
 
 export function startContractRefresh(sessionTargets) {
     scheduleRefresh(sessionTargets);
@@ -175,7 +176,7 @@ function scheduleRefresh(sessionTargets) {
     }, delay);
 }
 
-// ── ACCEPT ────────────────────────────────────────────
+// ===[ ACCEPT ]=========================================
 
 export async function acceptContract(id, sessionTargets) {
     const contract = contractBoard.find(c => c.id === id);

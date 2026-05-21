@@ -1,8 +1,13 @@
+import { player } from "./user-creation";
+
+// --- INTRO -----------
+// Sent on user creation
+
 export const welcome = {
     title: 'WELCOME',
     type: 'message',
     content: [
-        'WELCOME TO NULLROUTE, OPERATOR.',
+        `WELCOME TO NULLROUTE, ${player.handle}.`,
         '',
         'BEFORE WE SET YOU LOOSE, WE NEED TO ENSURE YOU KNOW WHAT YOU\'RE DOING.',
         '',
@@ -11,7 +16,6 @@ export const welcome = {
         'ONCE YOU COMPLETE THE CONTRACT WE\'LL GIVE YOU TIER 1 CLEARANCE.',
         '',
         'AFTER THAT, CONNECT TO NULLROUTE.',
-        'YOU\'LL FIND CONTRACTS ON THE BOARD THERE.',
         '',
         'GOOD LUCK.',
         '',
@@ -19,7 +23,7 @@ export const welcome = {
     ],
 };
 
-export const initContract = {
+export const init = {
     title: 'INIT',
     type: 'story-contract',
     content: [
@@ -27,7 +31,7 @@ export const initContract = {
         '',
         'CONNECT TO THE NULLROUTE TEST MACHINE AT \'10.0.0.8\'',
         '',
-        'THEN DELETE THE FILE TITLED: \'DELETE_ME.txt\'',
+        'GAIN ACCESS AND DELETE THE FILE TITLED: \'DELETE_ME.txt\'',
         '',
         'REWARD: TIER 1 CLEARANCE',
         'DIFFICULTY: 0',
@@ -38,7 +42,7 @@ export const initContract = {
     ],
 };
 
-export const friend = {
+export const helloworld = {
     title: 'HELLOWORLD',
     type: 'message',
     content: [
@@ -58,80 +62,30 @@ export const friend = {
         '',
         '- FROST'
     ],
-}
+};
 
-export const nixReportAshOne = {
-    title: 'ASH REPORT #8',
-    type: 'nix-message',
+export const initComplete = {
+    title: 'CONTRACT COMPLETE',
+    type: 'message',
     content: [
+        '[ CONTRACT COMPELETED ]',
         '',
-        'RELAY NODE HANDLER: [ OK ]',
-        'A.D.M.N GRID: [ ONLINE ]',
-        'CONTRACT MODULE: [ UP ]',
-        '',
-        '[ ALL SYSTEMS NOMINAL ]',
+        'NAME: INIT',
+        'TYPE: SABOTAGE',
+        'REWARD: TIER 1 CLEARANCE',
+        'CONTRACTER: NULLROUTE SERVICES',
         '',
         'MESSAGE FROM ADMIN [ ASH ]:',
         '',
-        'RAN THE SCAN YOU REQUESTED, I STILL DON\'T SEE WHY I HAVE TO KEEP DOING THIS.',
-        '',
-        'IS THIS ABOUT YOUR NEW PROJECT?',
-        '',
-        'IF YOU DON\'T WANT TO TELL US WHAT IT IS THAT\'S FINE.',
-        '',
-        'JUST DON\'T ACCIDENTLY BRING THE WHOLE SYSTEM DOWN, PEOPLE RELY ON THIS.',
-        '',
-        'PEOPLE LIKE ME.',
+        'GOOD JOB.',
+        'YOU TOOK YOUR FIRST STEP TOWARDS MAKING BANK.',
+        'A BABY STEP, BUT STILL.',
         '',
         '- ASH',
     ],
-}
+};
 
-export const nixReportEmberOne = {
-    title: 'EMBER REPORT #3',
-    type: 'nix-message',
-    content: [
-        '',
-        'CHECKED OUT THE OPERATORS ON THAT LIST YOU SENT ME,',
-        '',
-        'I HAVE TO SAY IT\'S HARD GETTING INTEL ON A SYSTEM DESGINED FOR ANONYMITY.',
-        '',
-        'ANYWAY, HERE\'S THE RUNDOWN:',
-        '',
-        'VOID [ NR-0024 ]: NODE ACTIVE 423 DAYS AGO',
-        '',
-        'NULL [ NR-0037 ]: NODE ACTIVE 58 DAYS AGO',
-        '',
-        'ZERO [ NR-0049]: NODE ACTIVE 632 DAYS AGO',
-        '',
-        'FROST [ NR-0052 ]: NODE ACTIVE 1 DAY AGO',
-        '',
-        'DON\'T KNOW WHAT YOU NEED THIS FOR, BUT YOU\'RE THE BOSS.',
-        '',
-        '- EMBER',
-    ],
-}
-
-export const nixMessageIgnis = {
-    title: 'CONCERNS',
-    type: 'nix-message',
-    content: [
-        '',
-        'NIX,',
-        '',
-        'I\'VE NOTICED YOU\'VE STARTED DISTANCING YOURSELF FROM EVERYONE.',
-        '',
-        'ALL WE HEAR FROM YOU NOW IS DIRECTIONS FOR TASKS WE MUST COMPLETE.',
-        'NULLROUTE ISN\'T THE SAME WITHOUT YOU.',
-        '',
-        'WE KNOW YOU\'RE WORKING ON SOMETHING, LET US HELP.',
-        'IT CAN\'T BE GOOD FOR YOU TO KEEP GOING LIKE THIS.',
-        '',
-        'THINK ABOUT IT.',
-        '',
-        '- PYRE',
-    ],
-}
+// ===[ SPAM MESSAGES ]===================================
 
 export const spam = [
     {
@@ -149,6 +103,8 @@ export const spam = [
             'NO STRINGS ATTACHED.',
             '',
             '- TOTALLY LEGIT GUY',
+            '',
+            '[ FLAGGED AS SPAM ]',
         ],
     },
     {
@@ -166,6 +122,8 @@ export const spam = [
             'FAILURE TO COMPLY WILL RESULT IN ACCOUNT TERMINATION.',
             '',
             '- NULLROUTE ADMIN',
+            '',
+            '[ FLAGGED AS SPAM ]',
         ],
     },
     {
@@ -181,6 +139,8 @@ export const spam = [
             'REPLY TO THIS MESSAGE WITH YOUR NODE ADDRESS TO GET STARTED.',
             '',
             '- ANONYMOUS',
+            '',
+            '[ FLAGGED AS SPAM ]',
         ],
     },
     {
@@ -198,6 +158,8 @@ export const spam = [
             'IF IT\'S NOT, FORGET YOU SAW THIS.',
             '',
             '- C',
+            '',
+            '[ FLAGGED AS SPAM ]',
         ],
     },
     {
@@ -215,6 +177,8 @@ export const spam = [
             'DON\'T ASK WHO THIS IS.',
             '',
             '- UNKNOWN',
+            '',
+            '[ FLAGGED AS SPAM ]',
         ],
     },
     {
@@ -232,6 +196,8 @@ export const spam = [
             'SERIOUS INQUIRIES ONLY.',
             '',
             '- VENDOR_77',
+            '',
+            '[ FLAGGED AS SPAM ]',
         ],
     },
     {
@@ -248,6 +214,8 @@ export const spam = [
             'FIND US IF YOU\'RE INTERESTED.',
             '',
             '- PHANTOM CIRCUIT',
+            '',
+            '[ FLAGGED AS SPAM ]',
         ],
     },
     {
@@ -265,6 +233,8 @@ export const spam = [
             'GOOD LUCK OUT THERE. YOU\'LL NEED IT.',
             '',
             '- RAZOR',
+            '',
+            '[ FLAGGED AS SPAM ]',
         ],
     },
     {
@@ -282,6 +252,8 @@ export const spam = [
             'INTERESTED? YOU KNOW WHERE TO FIND ME.',
             '',
             '- GHOST_MKT',
+            '',
+            '[ FLAGGED AS SPAM ]',
         ],
     },
     {
@@ -293,6 +265,8 @@ export const spam = [
             'WRONG ADDRESS. IGNORE THIS.',
             '',
             '- NOBODY',
+            '',
+            '[ FLAGGED AS SPAM ]',
         ],
     },
     {
@@ -309,6 +283,8 @@ export const spam = [
             'REPLY THROUGH SECURE CHANNEL ONLY.',
             '',
             '- IRONWALL SECURITIES',
+            '',
+            '[ FLAGGED AS SPAM ]',
         ],
     },
     {
@@ -324,6 +300,8 @@ export const spam = [
             'NOT SURE WHEN THEY\'LL BE BACK UP. COULD BE HOURS.',
             '',
             '- GRID_MONITOR',
+            '',
+            '[ FLAGGED AS SPAM ]',
         ],
     },
     {
@@ -339,6 +317,8 @@ export const spam = [
             'JUST WANTED TO SAY: GOOD JOB.',
             '',
             '- ANONYMOUS',
+            '',
+            '[ FLAGGED AS SPAM ]',
         ],
     },
     {
@@ -356,6 +336,8 @@ export const spam = [
             'IF YOU\'RE INTERESTED, YOU\'LL KNOW HOW TO FIND ME.',
             '',
             '- BROKER_X',
+            '',
+            '[ FLAGGED AS SPAM ]',
         ],
     },
     {
@@ -371,6 +353,8 @@ export const spam = [
             'THIS MESSAGE WAS SENT IN ERROR.',
             '',
             '- AUTOMATED SYSTEM',
+            '',
+            '[ FLAGGED AS SPAM ]',
         ],
     },
 ];

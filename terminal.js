@@ -104,11 +104,11 @@ async function submitCommand(raw) {
 
     const [cmd, ...args] = raw.split(' ').filter(Boolean);
 
-    // route through crack-aware dispatch when minigame is active
+    // route through crack-aware execution when minigame is active
     if (_crackMode) {
-        await dispatchWithCrack(cmd.toLowerCase(), args);
+        await executeWithCrack(cmd.toLowerCase(), args);
     } else {
-        await dispatch(cmd.toLowerCase(), args);
+        await execute(cmd.toLowerCase(), args);
     }
 
     inputLocked = false;
@@ -124,9 +124,9 @@ function printPromptLine(raw) {
     scrollToBottom();
 }
 
-// ── DISPATCH ─────────────────────────────────────────
+// ===[ COMMAND EXECUTION ]===============================
 
-async function dispatch(cmd, args) {
+async function execute(cmd, args) {
     const handler = commands[cmd];
     if (handler) {
         await handler(args);
@@ -136,7 +136,8 @@ async function dispatch(cmd, args) {
     }
 }
 
-// ── PRINT HELPERS ─────────────────────────────────────
+// ===[ OUTPUT HELPERS ]==================================
+
 
 export function print(text) {
     const pre = document.createElement('pre');
@@ -171,17 +172,11 @@ function typeLine(text) {
     });
 }
 
-function clearTerminal() {
-    terminalContent.forEach(line => {
-        line.remove();
-    });
-}
-
 function scrollToBottom() {
     container.scrollTop = container.scrollHeight;
 }
 
-// ── COMMAND REGISTRY ──────────────────────────────────
+// ===[ COMMAND REGISTRY ]================================
 
 const commands = {
     help: cmdHelp,
@@ -196,7 +191,7 @@ const commands = {
     accept: cmdAccept,
 };
 
-// ── COMMANDS ──────────────────────────────────────────
+// ===[ COMMANDS ]========================================
 
 async function cmdConnect(args) {
     if (connectedTo) {
@@ -433,7 +428,7 @@ async function cmdAccept(args) {
 }
 cmdAccept.description = 'ACCEPT A CONTRACT.';
 
-// ── NULLROUTE ─────────────────────────────────────────
+// ===[ NULLROUTE ]=======================================
 
 let _fullCommands = null;
 let _nullroutePage = 'menu';
@@ -582,8 +577,10 @@ async function printOperatorBoard() {
     print(`  ${'RANK'.padEnd(6)}${'HANDLE'.padEnd(16)}${'ID'.padEnd(12)}${'CLEARANCE'.padEnd(12)}BALANCE`);
     printBlank();
 
-    result.operators.forEach((op, i) => {
-        const rank = `#${i + 1}`.padEnd(6);
+    // Print the first 10 operators
+    for (opCount = 0; opCount < 10; opCount++) {
+        const op = result.operators[opCount];
+        const rank = `#${opCount + 1}`.padEnd(6);
         const handle = op.handle.padEnd(16);
         const id = op.id.padEnd(12);
         const clearance = `TIER ${op.clearance}`.padEnd(12);
@@ -592,7 +589,34 @@ async function printOperatorBoard() {
 
         print(`  ${rank}${handle}${id}${clearance}${balance}${marker}`);
         printBlank();
-    });
+    }
+    print('...');
+    printBlank();
+
+    // Print the current players stats
+    const currentOp = result.operators.some(op => op.handle === player.handle);
+    const rank = `#${result.operators.findIndex(op => op.handle = currentOp.handle) + 1}`.padEnd(6);
+    const handle = currentOp.handle.padEnd(16);
+    const id = currentOp.id.padEnd(12);
+    const clearance = `TIER ${currentOp.clearance}`.padEnd(12);
+    const balance = `${Number(currentOp.balance).toLocaleString()} CR`;
+
+    print('  YOUR RANKING:');
+    print(`  ${rank}${handle}${id}${clearance}${balance}`);
+    printBlank();
+
+    // [ DEPRECATED ]
+    // result.operators.forEach((op, i) => {
+    //     const rank = `#${i + 1}`.padEnd(6);
+    //     const handle = op.handle.padEnd(16);
+    //     const id = op.id.padEnd(12);
+    //     const clearance = `TIER ${op.clearance}`.padEnd(12);
+    //     const balance = `${Number(op.balance).toLocaleString()} CR`;
+    //     const marker = op.handle === player.handle ? ' ◄' : '';
+
+    //     print(`  ${rank}${handle}${id}${clearance}${balance}${marker}`);
+    //     printBlank();
+    // });
 
     print('  BACK    RETURN TO MENU');
     printBlank();
@@ -987,11 +1011,11 @@ let _crackedPassword  = null;   // password revealed by passCrack
 
 // Words for passCrack — pooled by length
 const CRACK_WORDS = {
-    3: ['CAT', 'DOG', 'RUN', 'FLY', 'CUT', 'BIT', 'HIT', 'NET', 'LOG', 'SYS'],
+    3: ['CAT', 'DOG', 'RUN', 'FLY', 'CUT', 'BIT', 'HIT', 'NET', 'LOG', 'BIG'],
     4: ['BYTE', 'CORE', 'GATE', 'NODE', 'BIND', 'FORK', 'KILL', 'LOCK', 'MASK', 'NULL', 'PIPE', 'ROOT', 'SCAN', 'TRAP', 'VOID'],
     5: ['BREAK', 'CACHE', 'CLONE', 'CRASH', 'CRYPT', 'DELTA', 'FLASH', 'GHOST', 'GRIND', 'MOUNT', 'PARSE', 'PATCH', 'PROXY', 'RELAY', 'SHELL', 'SHARD', 'SPLIT', 'STACK', 'SWEEP', 'TRACE'],
     6: ['BRIDGE', 'BUFFER', 'BYPASS', 'CIPHER', 'DAEMON', 'DECODE', 'INJECT', 'KERNEL', 'MIRROR', 'PACKET', 'ROUTER', 'SIGNAL', 'SOCKET', 'THREAD', 'TUNNEL', 'VECTOR'],
-    7: ['BACKDOOR', 'COMPILE', 'DECRYPT', 'EXPLOIT', 'GATEWAY', 'NETWORK', 'PAYLOAD', 'PROCESS', 'REBOUND', 'RUNTIME', 'SEGMENT', 'SESSION', 'SNIPPET', 'SYSCALL', 'TIMEOUT'],
+    7: ['BACKDOOR', 'COMPILE', 'DECRYPT', 'EXPLOIT', 'GATEWAY', 'NETWORK', 'PAYLOAD', 'PROCESS', 'REBOUND', 'RUNTIME', 'SEGMENT', 'SESSION', 'SNIPPET', 'SYSCALL', 'TIMEOUT', 'TARIQUE'],
     8: ['ASSEMBLY', 'CHECKSUM', 'DEADLOCK', 'ENDPOINT', 'FIREWALL', 'FRAGMENT', 'OVERFLOW', 'PROTOCOL', 'REDIRECT', 'REGISTER', 'SANDBOX', 'SNAPSHOT', 'TRANSMIT', 'WIREGUARD'],
 };
 
@@ -1052,7 +1076,9 @@ async function connectToTarget(ip) {
 function renderLoginScreen() {
     printBlank();
     print('────────────────────────────────');
-    print(`${_connectedTarget.name.toUpperCase()} LOGIN`);
+    print(`${_connectedTarget.name.toUpperCase()}`);
+    printBlank();
+    print(`LOG IN`);
     print('────────────────────────────────');
     printBlank();
 
@@ -1142,12 +1168,13 @@ async function cmdPassCrack() {
     }
 
     const difficulty = _connectedTarget.difficulty;
+    const passCrackTool = player.tools.indexOf(tool => tool.name === 'passCrack');
     _crackWord      = getWordForDifficulty(difficulty);
     _crackScrambled = scrambleWord(_crackWord);
     _crackAttempts  = 0;
 
     printBlank();
-    print('PASSCRACK v1 INITIALISING...');
+    print(`PASSCRACK ${passCrackTool.level} INITIALISING...`);
     printBlank();
     print(`  ENCRYPTED TOKEN INTERCEPTED.`);
     print(`  UNSCRAMBLE THE FOLLOWING TO CRACK THE PASSWORD:`);
@@ -1166,9 +1193,9 @@ async function cmdPassCrack() {
 let _crackMode = false;
 
 // Hook into submitCommand — check at dispatch level
-const _originalDispatch = dispatch;
+const _originalExecute = execute;
 
-async function dispatchWithCrack(cmd, args) {
+async function executeWithCrack(cmd, args) {
     if (_crackMode) {
         const attempt = (cmd + (args.length ? ' ' + args.join(' ') : '')).toUpperCase().trim();
         _crackAttempts++;
@@ -1193,7 +1220,7 @@ async function dispatchWithCrack(cmd, args) {
         return;
     }
 
-    await _originalDispatch(cmd, args);
+    await _originalExecute(cmd, args);
 }
 
 // Patch dispatch to use the crack-aware version
@@ -1258,7 +1285,7 @@ async function cmdPortScan(args) {
     }
 
     printBlank();
-    print('  EXPLOIT MODULES: COMING SOON.');
+    print('  EXPLOIT MODULES COMING SOON.');
     printBlank();
 }
 cmdPortScan.description = 'SCAN A TARGET FOR OPEN PORTS.';
@@ -1276,9 +1303,6 @@ function generatePorts(target) {
         { port: 25,   state: 'OPEN',   service: 'SMTP' },
         { port: 3306, state: 'OPEN',   service: 'MYSQL' },
         { port: 5432, state: 'OPEN',   service: 'POSTGRES' },
-        { port: 8080, state: 'OPEN',   service: 'HTTP-ALT' },
-        { port: 8443, state: 'OPEN',   service: 'HTTPS-ALT' },
-        { port: 6379, state: 'OPEN',   service: 'REDIS' },
     ];
 
     const closed = [
@@ -1297,7 +1321,7 @@ function generatePorts(target) {
 // ── SERVER COMMANDS ───────────────────────────────────
 
 async function cmdLs() {
-    if (!_loggedIn) { print('NOT LOGGED IN.'); return; }
+    if (!_loggedIn) return; 
     if (!_connectedTarget) return;
 
     const files = _activeContract?.fileSystem ?? [];
@@ -1324,7 +1348,7 @@ async function cmdLs() {
 cmdLs.description = 'LIST FILES ON THE TARGET SYSTEM.';
 
 async function cmdRm(args) {
-    if (!_loggedIn) { print('NOT LOGGED IN.'); return; }
+    if (!_loggedIn) return; 
 
     const file = args[0]?.toUpperCase();
     if (!file) { print('USAGE: RM [FILE]'); return; }
@@ -1363,7 +1387,7 @@ async function cmdRm(args) {
 cmdRm.description = 'DELETE A FILE ON THE TARGET SYSTEM.';
 
 async function cmdExfil(args) {
-    if (!_loggedIn) { print('NOT LOGGED IN.'); return; }
+    if (!_loggedIn) return; 
 
     const file = args[0]?.toUpperCase();
     const dest = args[1];
@@ -1396,7 +1420,7 @@ async function cmdExfil(args) {
 cmdExfil.description = 'EXFILTRATE A FILE TO A DESTINATION.';
 
 async function cmdPlant(args) {
-    if (!_loggedIn) { print('NOT LOGGED IN.'); return; }
+    if (!_loggedIn) return; 
 
     const file = args[0]?.toUpperCase();
     if (!file) { print('USAGE: PLANT [FILE]'); return; }

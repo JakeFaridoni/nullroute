@@ -3,15 +3,16 @@ import { formatDate, userCreation, player, sessionTargets, sendToInbox } from '.
 import { generateContracts, startContractRefresh } from './contracts.js';
 
 import { initTerminal } from './terminal.js';
-import { initInbox, render } from './inbox.js';
-import { beepSound, playSound } from './boot/boot.js';
-import { welcome, initContract, friend, spam, nixReportAshOne, nixReportEmberOne, nixMessageIgnis } from './story.js';
+import { initInbox } from './inbox.js';
+import { welcome, init, helloworld, spam } from './messages.js';
 
 export const ambientNoise = new Audio('./assets/audio/ambient-noise.mp3');
 export const BGM = new Audio('./assets/audio/BGM.mp3');
 
 ambientNoise.loop = true;
 BGM.loop = true;
+
+// ===[ STARTUP & LOGIN ]=================================
 
 await titleScreen();
 await userCreation();
@@ -43,7 +44,7 @@ document.body.innerHTML = `
 </div>
 `;
 
-export const terminalContent = document.querySelectorAll('terminal-content > pre:not(#terminal-input-line)');
+// ===[ STATUSES ]========================================
 
 const clock = document.getElementById('status-time');
 clock.textContent = `${formatDate(Date.now())}`;
@@ -65,6 +66,9 @@ export const statusBalance = document.getElementById('status-balance');
 export const statusConnection = document.getElementById('status-connection');
 statusBalance.textContent = `BAL: ${player.balance}CR`;
 
+
+// ===[ CURSOR ]==========================================
+
 const cursor = document.createElement('div');
 cursor.id = 'custom-cursor';
 document.body.appendChild(cursor);
@@ -82,15 +86,18 @@ document.addEventListener('mousemove', e => {
     setTimeout(() => trail.remove(), 300);
 });
 
+// ===[ INITIALIZATION ]==================================
+
 initTerminal(document.getElementById('terminal-content'));
 initInbox(document.getElementById('inbox-content'));
 
-await sendToInbox(nixReportAshOne, 2000);
-await sendToInbox(nixReportEmberOne, 500);
-await sendToInbox(nixMessageIgnis, 500);
+// ===[ INTRO MESSAGES ]==================================
+
 await sendToInbox(welcome, 5000);
-await sendToInbox(initContract, 5000);
-await sendToInbox(friend, 30000);
+await sendToInbox(init, 5000);
+await sendToInbox(helloworld, 30000);
+
+// ===[ SPAM MESSAGES ]===================================
 
 function random(min, max) {
     return Math.floor(Math.random() * (max - min + 1)) + min;
@@ -99,6 +106,8 @@ function random(min, max) {
 setInterval(() => {
     if (random(0, 500) === 4) sendToInbox(spam[random(0, spam.length - 1)]);
 }, 10000);
+
+// ===[ CONTRACTS ]=======================================
 
 generateContracts(sessionTargets);
 startContractRefresh(sessionTargets);
