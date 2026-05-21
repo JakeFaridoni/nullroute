@@ -133,17 +133,51 @@ function renderContract(contract, body) {
         `OBJ:       ${contract.objective}`,
         `           ${contract.description}`,
         ``,
+        `FILE:      ${contract.objectiveFile ?? '—'}`,
+        contract.exfilDestination ? `DEST:      ${contract.exfilDestination}` : null,
+        ``,
         `PAYOUT:    ${contract.payout.toLocaleString()} CR`,
         `SECURITY:  MON ${contract.security.monitor}  PRX ${contract.security.proxy}  FW ${contract.security.firewall}`,
         ``,
         `ACCEPTED:  ${contract.acceptedDate ?? '—'}`,
-    ];
+    ].filter(l => l !== null);
 
     for (const line of lines) {
         const pre = document.createElement('pre');
         pre.className = 'inbox-detail-line';
         pre.textContent = line === '' ? '\u00A0' : line;
         body.appendChild(pre);
+    }
+
+    // PLANT contracts get a download button for the payload file
+    if (contract.status === 'ACCEPTED' && contract.objective === 'PLANT' && contract.plantFile) {
+        const alreadyOwned = player.installedFiles.some(f => f.contractId === contract.id);
+
+        const blank = document.createElement('pre');
+        blank.innerHTML = '&nbsp;';
+        body.appendChild(blank);
+
+        if (alreadyOwned) {
+            const owned = document.createElement('pre');
+            owned.className = 'inbox-detail-line';
+            owned.textContent = `[ PAYLOAD DOWNLOADED: ${contract.plantFile.name} ]`;
+            body.appendChild(owned);
+        } else {
+            const dlBtn = document.createElement('pre');
+            dlBtn.className = 'inbox-delete-btn'; // reuse the hover style
+            dlBtn.textContent = `[ DOWNLOAD PAYLOAD: ${contract.plantFile.name} ]`;
+            dlBtn.addEventListener('click', () => {
+                if (player.hardware.storage.availableSize < contract.plantFile.size) {
+                    dlBtn.textContent = '[ INSUFFICIENT STORAGE ]';
+                    return;
+                }
+                player.installedFiles.push(contract.plantFile);
+                apiSaveGame(player, sessionTargets);
+                render();
+                playSound(beepSound);
+            });
+            body.appendChild(dlBtn);
+        }
     }
 }
 

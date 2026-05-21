@@ -16,9 +16,9 @@ export const player = {
   inbox: [],
 
   tools: [
-    { name: 'portScan',  level: 1, ramUsage: 120, size: 10, active: false },
+    { name: 'portScan', level: 1, ramUsage: 120, size: 10, active: false },
     { name: 'passCrack', level: 1, ramUsage: 320, size: 15, active: false },
-    { name: 'connect',   level: 1, ramUsage: 0,   size: 5,  active: false },
+    { name: 'connect', level: 1, ramUsage: 0, size: 5, active: false },
   ],
 
   installedFiles: [],
@@ -68,6 +68,8 @@ export const player = {
   traceBuffer: 30000,
   log: [],
 };
+
+export let sessionPassword = ''; // set during login, never persisted
 
 export async function sendToInbox(item, ms = 0) {
   if (player.inbox.some(i => (i.id && i.id === item.id) || (i.title && i.title === item.title))) return;
@@ -191,11 +193,11 @@ export async function userCreation() {
   async function failureSequence(error) {
     const steps = [
       { action: 'FLAGGING UNAUTHORISED ACCESS ATTEMPT', status: 'LOGGED' },
-      { action: 'ALERTING RELAY NODE',                  status: 'DONE'   },
-      { action: 'SCRUBBING SESSION DATA',               status: 'DONE'   },
-      { action: 'COLLAPSING TUNNEL',                    status: 'DONE'   },
-      { action: 'REVOKING CERTIFICATES',                status: 'DONE'   },
-      { action: 'TERMINATING CONNECTION',               status: 'DONE'   },
+      { action: 'ALERTING RELAY NODE', status: 'DONE' },
+      { action: 'SCRUBBING SESSION DATA', status: 'DONE' },
+      { action: 'COLLAPSING TUNNEL', status: 'DONE' },
+      { action: 'REVOKING CERTIFICATES', status: 'DONE' },
+      { action: 'TERMINATING CONNECTION', status: 'DONE' },
     ];
 
     printBlank();
@@ -241,6 +243,7 @@ export async function userCreation() {
     }
 
     const password = await promptInput('ENTER PASSWORD:', true);
+    sessionPassword = password;
     playSound(tickSound);
 
     const loginResult = await apiLogin(handleInput, password);
@@ -278,6 +281,7 @@ export async function userCreation() {
         const handle = await promptInput('ENTER HANDLE:');
         playSound(tickSound);
         const password = await promptInput('SET PASSWORD:', true);
+        sessionPassword = password;
         playSound(tickSound);
 
         const { exists: handleTaken } = await apiHandleExists(handle.toUpperCase());

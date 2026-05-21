@@ -261,3 +261,11 @@ export async function apiSellStock(ticker, amount) {
         body: JSON.stringify({ ticker, amount }),
     });
 }
+
+export async function apiCompleteContract(contractId) {
+    return apiFetch(`/contracts/${contractId}/complete`, { method: 'POST' });
+}
+
+export async function apiFailContract(contractId) {
+    return apiFetch(`/contracts/${contractId}/fail`, { method: 'POST' });
+}

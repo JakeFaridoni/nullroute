@@ -3,6 +3,7 @@ import { beepSound, clackSound, playSound } from './boot/boot.js';
 import { contractBoard, acceptContract } from './contracts.js';
 import { statusConnection, statusBalance } from './main.js';
 import { apiGetStocks, apiBuyStock, apiSellStock, apiSaveGame, apiGetLeaderboard, apiChangePassword, apiDeleteAccount } from './api.js';
+import { apiCompleteContract, apiFailContract } from './api.js';
 
 let connectedTo = null;
 
@@ -95,21 +96,20 @@ function updateInputDisplay() {
 
 async function submitCommand(raw) {
     inputLocked = true;
-
-    // push to history, reset index
     history.unshift(raw);
     historyIndex = -1;
-
-    // echo the command back into output
     printPromptLine(raw);
-
-    // clear input
     inputValue = '';
     updateInputDisplay();
 
-    // parse and dispatch
     const [cmd, ...args] = raw.split(' ').filter(Boolean);
-    await dispatch(cmd.toLowerCase(), args);
+
+    // route through crack-aware dispatch when minigame is active
+    if (_crackMode) {
+        await dispatchWithCrack(cmd.toLowerCase(), args);
+    } else {
+        await dispatch(cmd.toLowerCase(), args);
+    }
 
     inputLocked = false;
     scrollToBottom();
@@ -220,7 +220,8 @@ async function cmdConnect(args) {
         return;
     }
 
-    print('USAGE: CONNECT [NULLROUTE | STOCKMARKET | IP]');
+    // treat anything else as an IP
+    await connectToTarget(target);
 }
 cmdConnect.description = 'CONNECT TO A HOST.';
 
@@ -238,7 +239,6 @@ async function cmdDisconnect() {
         printBlank();
         await typeLine('CLOSING SECURE CHANNEL');
         await typeLine('SCRUBBING SESSION DATA');
-        cmdClear();
         printBlank();
         print('DISCONNECTED FROM NULLROUTE.');
         printBlank();
@@ -250,13 +250,26 @@ async function cmdDisconnect() {
         setStockMarketMode(false);
         printBlank();
         await typeLine('CLOSING MARKET CONNECTION');
-        cmdClear();
         printBlank();
         print('DISCONNECTED FROM STOCK MARKET.');
         printBlank();
         statusConnection.textContent = 'CONNECTION: NONE';
         return;
     }
+
+    // disconnecting from a target IP
+    if (_loggedIn && _activeContract && _activeContract.status === 'ACCEPTED') {
+        await failContract();
+    }
+
+    setTargetMode(false);
+    printBlank();
+    await typeLine('TERMINATING CONNECTION');
+    await typeLine('SCRUBBING SESSION DATA');
+    printBlank();
+    print(`DISCONNECTED FROM ${wasConnected}.`);
+    printBlank();
+    statusConnection.textContent = 'CONNECTION: NONE';
 }
 cmdDisconnect.description = 'DISCONNECT FROM HOST.';
 
@@ -958,4 +971,627 @@ function setStockMarketMode(active) {
             _stockPollTimer = null;
         }
     }
+}
+
+// ── HACKING SYSTEM ────────────────────────────────────────────────────────────
+
+let _connectedIp      = null;   // IP of the currently connected target
+let _connectedTarget  = null;   // full target object from sessionTargets
+let _loggedIn         = false;  // whether player has logged in to the target
+let _traceInterval    = null;   // setInterval handle for trace countdown
+let _traceRemaining   = 0;      // ms remaining on trace buffer
+let _traceEl          = null;   // status bar element for trace display
+let _activeContract   = null;   // contract being worked on this session
+let _loginPasswordEl  = null;   // the password field pre element
+let _crackedPassword  = null;   // password revealed by passCrack
+
+// Words for passCrack — pooled by length
+const CRACK_WORDS = {
+    3: ['CAT', 'DOG', 'RUN', 'FLY', 'CUT', 'BIT', 'HIT', 'NET', 'LOG', 'SYS'],
+    4: ['BYTE', 'CORE', 'GATE', 'NODE', 'BIND', 'FORK', 'KILL', 'LOCK', 'MASK', 'NULL', 'PIPE', 'ROOT', 'SCAN', 'TRAP', 'VOID'],
+    5: ['BREAK', 'CACHE', 'CLONE', 'CRASH', 'CRYPT', 'DELTA', 'FLASH', 'GHOST', 'GRIND', 'MOUNT', 'PARSE', 'PATCH', 'PROXY', 'RELAY', 'SHELL', 'SHARD', 'SPLIT', 'STACK', 'SWEEP', 'TRACE'],
+    6: ['BRIDGE', 'BUFFER', 'BYPASS', 'CIPHER', 'DAEMON', 'DECODE', 'INJECT', 'KERNEL', 'MIRROR', 'PACKET', 'ROUTER', 'SIGNAL', 'SOCKET', 'THREAD', 'TUNNEL', 'VECTOR'],
+    7: ['BACKDOOR', 'COMPILE', 'DECRYPT', 'EXPLOIT', 'GATEWAY', 'NETWORK', 'PAYLOAD', 'PROCESS', 'REBOUND', 'RUNTIME', 'SEGMENT', 'SESSION', 'SNIPPET', 'SYSCALL', 'TIMEOUT'],
+    8: ['ASSEMBLY', 'CHECKSUM', 'DEADLOCK', 'ENDPOINT', 'FIREWALL', 'FRAGMENT', 'OVERFLOW', 'PROTOCOL', 'REDIRECT', 'REGISTER', 'SANDBOX', 'SNAPSHOT', 'TRANSMIT', 'WIREGUARD'],
+};
+
+function getWordForDifficulty(difficulty) {
+    // difficulty 1-2 → 3-4 chars, 3-4 → 4-5, 5-6 → 5-6, 7-8 → 6-7, 9 → 8
+    const lengthMap = { 1: 3, 2: 3, 3: 4, 4: 4, 5: 5, 6: 5, 7: 6, 8: 7, 9: 8 };
+    const len   = lengthMap[difficulty] ?? 5;
+    const pool  = CRACK_WORDS[len] ?? CRACK_WORDS[5];
+    return pool[Math.floor(Math.random() * pool.length)];
+}
+
+function scrambleWord(word) {
+    const arr = word.split('');
+    for (let i = arr.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [arr[i], arr[j]] = [arr[j], arr[i]];
+    }
+    // ensure it's actually scrambled
+    if (arr.join('') === word) return scrambleWord(word);
+    return arr.join('');
+}
+
+// ── CONNECT TO TARGET IP ──────────────────────────────
+
+async function connectToTarget(ip) {
+    const target = sessionTargets.find(t => t.ip === ip);
+    if (!target) {
+        print(`NO ROUTE TO HOST: ${ip}`);
+        return;
+    }
+
+    connectedTo      = ip;
+    _connectedIp     = ip;
+    _connectedTarget = target;
+    _loggedIn        = false;
+    _crackedPassword = null;
+
+    // find matching accepted contract for this target
+    _activeContract = player.inbox.find(c =>
+        c.status === 'ACCEPTED' && c.targetIp === ip
+    ) ?? null;
+
+    setTargetMode(true);
+
+    printBlank();
+    await typeLine(`ROUTING TO ${ip}`);
+    await typeLine('ESTABLISHING CONNECTION');
+    printBlank();
+    print(`CONNECTED TO ${target.name}`);
+    print(`IP: ${ip}`);
+    printBlank();
+
+    renderLoginScreen();
+
+    statusConnection.textContent = `CONNECTION: ${ip}`;
+}
+
+function renderLoginScreen() {
+    printBlank();
+    print('────────────────────────────────');
+    print(`${_connectedTarget.name.toUpperCase()} LOGIN`);
+    print('────────────────────────────────');
+    printBlank();
+
+    const userLine = document.createElement('pre');
+    userLine.textContent = '  USERNAME: ADMIN';
+    container.insertBefore(userLine, inputLine);
+
+    const passLine = document.createElement('pre');
+    _loginPasswordEl = passLine;
+
+    if (_crackedPassword) {
+        passLine.textContent = `  PASSWORD: ${_crackedPassword}`;
+    } else {
+        passLine.textContent = '  PASSWORD: ________';
+    }
+
+    container.insertBefore(passLine, inputLine);
+    printBlank();
+
+    if (_crackedPassword) {
+        print('  [ ENTER ] TO LOG IN — TYPE: LOGIN');
+    } else {
+        print('  RUN PASSCRACK TO OBTAIN PASSWORD.');
+    }
+
+    printBlank();
+    scrollToBottom();
+}
+
+// ── TARGET MODE COMMANDS ──────────────────────────────
+
+let _fullTargetCommands = null;
+
+function setTargetMode(active) {
+    if (active) {
+        _fullTargetCommands = { ...commands };
+        for (const key of Object.keys(commands)) delete commands[key];
+
+        commands.disconnect  = cmdDisconnect;
+        commands.exit        = cmdExit;
+        commands.passcrack   = cmdPassCrack;
+        commands.login       = cmdLogin;
+        commands.portscan    = cmdPortScan;
+    } else {
+        if (_fullTargetCommands) {
+            for (const key of Object.keys(commands)) delete commands[key];
+            Object.assign(commands, _fullTargetCommands);
+            _fullTargetCommands = null;
+        }
+        stopTrace();
+        _connectedIp      = null;
+        _connectedTarget  = null;
+        _loggedIn         = false;
+        _crackedPassword  = null;
+        _activeContract   = null;
+        _loginPasswordEl  = null;
+    }
+}
+
+function setLoggedInCommands() {
+    // Called after successful login — adds server commands, starts trace
+    delete commands.passcrack;
+    delete commands.login;
+
+    commands.ls    = cmdLs;
+    commands.rm    = cmdRm;
+    commands.exfil = cmdExfil;
+    commands.plant = cmdPlant;
+}
+
+// ── PASSCRACK MINIGAME ────────────────────────────────
+
+let _crackWord       = null;
+let _crackScrambled  = null;
+let _crackAttempts   = 0;
+
+async function cmdPassCrack() {
+    if (_loggedIn) {
+        print('ALREADY LOGGED IN.');
+        return;
+    }
+
+    if (_crackedPassword) {
+        print(`PASSWORD ALREADY CRACKED: ${_crackedPassword}`);
+        print('TYPE LOGIN TO ACCESS THE SYSTEM.');
+        return;
+    }
+
+    const difficulty = _connectedTarget.difficulty;
+    _crackWord      = getWordForDifficulty(difficulty);
+    _crackScrambled = scrambleWord(_crackWord);
+    _crackAttempts  = 0;
+
+    printBlank();
+    print('PASSCRACK v1 INITIALISING...');
+    printBlank();
+    print(`  ENCRYPTED TOKEN INTERCEPTED.`);
+    print(`  UNSCRAMBLE THE FOLLOWING TO CRACK THE PASSWORD:`);
+    printBlank();
+    print(`  > ${_crackScrambled}`);
+    printBlank();
+    print('  TYPE YOUR ANSWER:');
+    printBlank();
+
+    inputLocked = false; // let them type normally, we intercept via overrideCommand
+
+    // temporarily override the submit logic
+    _crackMode = true;
+}
+
+let _crackMode = false;
+
+// Hook into submitCommand — check at dispatch level
+const _originalDispatch = dispatch;
+
+async function dispatchWithCrack(cmd, args) {
+    if (_crackMode) {
+        const attempt = (cmd + (args.length ? ' ' + args.join(' ') : '')).toUpperCase().trim();
+        _crackAttempts++;
+
+        if (attempt === _crackWord) {
+            _crackMode       = false;
+            _crackedPassword = _crackWord;
+
+            printBlank();
+            print(`  PASSWORD CRACKED: ${_crackedPassword}`);
+            printBlank();
+            print('  TYPE LOGIN TO ACCESS THE SYSTEM.');
+            printBlank();
+
+            // update the login screen password field
+            if (_loginPasswordEl) {
+                _loginPasswordEl.textContent = `  PASSWORD: ${_crackedPassword}`;
+            }
+        } else {
+            print(`  INCORRECT. TRY AGAIN: ${_crackScrambled}`);
+        }
+        return;
+    }
+
+    await _originalDispatch(cmd, args);
+}
+
+// Patch dispatch to use the crack-aware version
+// We override at the point of use in submitCommand
+// Replace the dispatch call in submitCommand to use dispatchWithCrack
+
+// ── LOGIN ─────────────────────────────────────────────
+
+async function cmdLogin() {
+    if (_loggedIn) {
+        print('ALREADY LOGGED IN.');
+        return;
+    }
+
+    if (!_crackedPassword) {
+        print('PASSWORD UNKNOWN. RUN PASSCRACK FIRST.');
+        return;
+    }
+
+    printBlank();
+    await typeLine('AUTHENTICATING');
+    printBlank();
+    print(`ACCESS GRANTED. WELCOME, ADMIN.`);
+    printBlank();
+
+    _loggedIn = true;
+    setLoggedInCommands();
+    startTrace();
+
+    // show the file system
+    await cmdLs();
+}
+cmdLogin.description = 'LOG IN TO THE TARGET SYSTEM.';
+
+// ── PORT SCAN ─────────────────────────────────────────
+
+async function cmdPortScan(args) {
+    const ip = args[0] ?? _connectedIp;
+    if (!ip) {
+        print('USAGE: PORTSCAN [IP]');
+        return;
+    }
+
+    const target = sessionTargets.find(t => t.ip === ip);
+    if (!target) {
+        print(`NO ROUTE TO HOST: ${ip}`);
+        return;
+    }
+
+    printBlank();
+    await typeLine(`SCANNING ${ip}`);
+    printBlank();
+    print(`TARGET: ${target.name}`);
+    printBlank();
+    print('  PORT     STATE     SERVICE');
+    printBlank();
+
+    // generate port list based on security profile
+    const ports = generatePorts(target);
+    for (const p of ports) {
+        print(`  ${String(p.port).padEnd(9)}${p.state.padEnd(10)}${p.service}`);
+    }
+
+    printBlank();
+    print('  EXPLOIT MODULES: COMING SOON.');
+    printBlank();
+}
+cmdPortScan.description = 'SCAN A TARGET FOR OPEN PORTS.';
+
+function generatePorts(target) {
+    const always = [
+        { port: 22,   state: 'OPEN',   service: 'SSH' },
+        { port: 80,   state: 'OPEN',   service: 'HTTP' },
+        { port: 443,  state: 'OPEN',   service: 'HTTPS' },
+    ];
+
+    const optional = [
+        { port: 21,   state: 'OPEN',   service: 'FTP' },
+        { port: 23,   state: 'OPEN',   service: 'TELNET' },
+        { port: 25,   state: 'OPEN',   service: 'SMTP' },
+        { port: 3306, state: 'OPEN',   service: 'MYSQL' },
+        { port: 5432, state: 'OPEN',   service: 'POSTGRES' },
+        { port: 8080, state: 'OPEN',   service: 'HTTP-ALT' },
+        { port: 8443, state: 'OPEN',   service: 'HTTPS-ALT' },
+        { port: 6379, state: 'OPEN',   service: 'REDIS' },
+    ];
+
+    const closed = [
+        { port: 445,  state: 'CLOSED', service: 'SMB' },
+        { port: 3389, state: 'CLOSED', service: 'RDP' },
+        { port: 53,   state: 'CLOSED', service: 'DNS' },
+    ];
+
+    // more open ports on easier targets
+    const openCount = Math.max(0, 4 - Math.floor(target.difficulty / 3));
+    const picked    = optional.sort(() => Math.random() - 0.5).slice(0, openCount);
+
+    return [...always, ...picked, ...closed].sort((a, b) => a.port - b.port);
+}
+
+// ── SERVER COMMANDS ───────────────────────────────────
+
+async function cmdLs() {
+    if (!_loggedIn) { print('NOT LOGGED IN.'); return; }
+    if (!_connectedTarget) return;
+
+    const files = _activeContract?.fileSystem ?? [];
+
+    printBlank();
+    print(`  ${_connectedTarget.name} // FILE SYSTEM`);
+    printBlank();
+
+    if (files.length === 0) {
+        print('  NO FILES FOUND.');
+    } else {
+        for (const f of files) {
+            const marker = f === _activeContract?.objectiveFile ? '  *' : '   ';
+            print(`${marker} ${f}`);
+        }
+    }
+
+    printBlank();
+    if (_activeContract?.objectiveFile) {
+        print(`  * = OBJECTIVE FILE`);
+        printBlank();
+    }
+}
+cmdLs.description = 'LIST FILES ON THE TARGET SYSTEM.';
+
+async function cmdRm(args) {
+    if (!_loggedIn) { print('NOT LOGGED IN.'); return; }
+
+    const file = args[0]?.toUpperCase();
+    if (!file) { print('USAGE: RM [FILE]'); return; }
+
+    if (!_activeContract) {
+        print('NO ACTIVE CONTRACT FOR THIS TARGET.');
+        return;
+    }
+
+    const fs = _activeContract.fileSystem;
+    const idx = fs.findIndex(f => f.toUpperCase() === file);
+
+    if (idx === -1) {
+        print(`FILE NOT FOUND: ${file}`);
+        return;
+    }
+
+    const isSabotage = _activeContract.objective === 'SABOTAGE' && file === _activeContract.objectiveFile?.toUpperCase();
+    const isDestroy  = _activeContract.objective === 'DESTROY';
+
+    _activeContract.fileSystem.splice(idx, 1);
+
+    printBlank();
+    print(`DELETED: ${file}`);
+
+    if (isSabotage) {
+        printBlank();
+        await completeContract();
+    } else if (isDestroy && _activeContract.fileSystem.length === 0) {
+        printBlank();
+        await completeContract();
+    }
+
+    printBlank();
+}
+cmdRm.description = 'DELETE A FILE ON THE TARGET SYSTEM.';
+
+async function cmdExfil(args) {
+    if (!_loggedIn) { print('NOT LOGGED IN.'); return; }
+
+    const file = args[0]?.toUpperCase();
+    const dest = args[1];
+
+    if (!file || !dest) { print('USAGE: EXFIL [FILE] [DESTINATION IP]'); return; }
+
+    if (!_activeContract || _activeContract.objective !== 'EXFILTRATE') {
+        print('NO ACTIVE EXFILTRATE CONTRACT FOR THIS TARGET.');
+        return;
+    }
+
+    if (file !== _activeContract.objectiveFile?.toUpperCase()) {
+        print(`WRONG FILE. OBJECTIVE REQUIRES: ${_activeContract.objectiveFile}`);
+        return;
+    }
+
+    if (dest !== _activeContract.exfilDestination) {
+        print(`WRONG DESTINATION. CHECK YOUR CONTRACT.`);
+        return;
+    }
+
+    printBlank();
+    await typeLine(`TRANSMITTING ${file} TO ${dest}`);
+    printBlank();
+    print('TRANSFER COMPLETE.');
+    printBlank();
+    await completeContract();
+    printBlank();
+}
+cmdExfil.description = 'EXFILTRATE A FILE TO A DESTINATION.';
+
+async function cmdPlant(args) {
+    if (!_loggedIn) { print('NOT LOGGED IN.'); return; }
+
+    const file = args[0]?.toUpperCase();
+    if (!file) { print('USAGE: PLANT [FILE]'); return; }
+
+    if (!_activeContract || _activeContract.objective !== 'PLANT') {
+        print('NO ACTIVE PLANT CONTRACT FOR THIS TARGET.');
+        return;
+    }
+
+    const payload = player.installedFiles.find(
+        f => f.type === 'plant-payload' && f.contractId === _activeContract.id
+    );
+
+    if (!payload) {
+        print('PAYLOAD NOT FOUND. DOWNLOAD IT FROM YOUR INBOX FIRST.');
+        return;
+    }
+
+    if (file !== payload.name.toUpperCase()) {
+        print(`WRONG FILE. USE: ${payload.name}`);
+        return;
+    }
+
+    printBlank();
+    await typeLine(`INSTALLING ${payload.name}`);
+    printBlank();
+    print('BACKDOOR PLANTED.');
+    printBlank();
+
+    // remove payload from player files
+    player.installedFiles = player.installedFiles.filter(
+        f => !(f.type === 'plant-payload' && f.contractId === _activeContract.id)
+    );
+
+    await completeContract();
+    printBlank();
+}
+cmdPlant.description = 'PLANT A PAYLOAD ON THE TARGET SYSTEM.';
+
+// ── CONTRACT COMPLETION / FAILURE ─────────────────────
+
+async function completeContract() {
+    if (!_activeContract) return;
+
+    const result = await apiCompleteContract(_activeContract.id);
+    if (!result.ok) {
+        print(`CONTRACT COMPLETION FAILED: ${result.reason}`);
+        return;
+    }
+
+    // update local player state
+    const inboxContract = player.inbox.find(c => c.id === _activeContract.id);
+    if (inboxContract) inboxContract.status = 'COMPLETE';
+
+    player.balance += result.payout;
+    statusBalance.textContent = `BAL: ${player.balance}CR`;
+
+    await apiSaveGame(player, sessionTargets);
+
+    print(`CONTRACT COMPLETE.`);
+    print(`PAYOUT: ${result.payout.toLocaleString()} CR`);
+    print(`NEW BALANCE: ${player.balance.toLocaleString()} CR`);
+}
+
+async function failContract() {
+    if (!_activeContract) return;
+
+    const result = await apiFailContract(_activeContract.id);
+    if (!result.ok) return;
+
+    const inboxContract = player.inbox.find(c => c.id === _activeContract.id);
+    if (inboxContract) inboxContract.status = 'FAILED';
+
+    player.clearance   = result.clearance;
+    player.failedContracts = result.failCount;
+
+    document.getElementById('status-clearance').textContent = `CLEAR: TIER ${player.clearance}`;
+
+    await apiSaveGame(player, sessionTargets);
+
+    printBlank();
+    print('CONTRACT FAILED.');
+    if (result.failCount % 3 === 0) {
+        print(`CLEARANCE DOWNGRADED TO TIER ${result.clearance}.`);
+    }
+}
+
+// ── TRACE SYSTEM ──────────────────────────────────────
+
+function startTrace() {
+    _traceRemaining = player.traceBuffer;
+
+    // create trace display in status bar
+    _traceEl = document.createElement('span');
+    _traceEl.id = 'status-trace';
+    document.getElementById('statusbar').appendChild(_traceEl);
+    updateTraceDisplay();
+
+    _traceInterval = setInterval(async () => {
+        _traceRemaining -= 1000;
+        updateTraceDisplay();
+
+        if (_traceRemaining <= 0) {
+            clearInterval(_traceInterval);
+            _traceInterval = null;
+            await traceTriggered();
+        }
+    }, 1000);
+}
+
+function stopTrace() {
+    if (_traceInterval) {
+        clearInterval(_traceInterval);
+        _traceInterval = null;
+    }
+    if (_traceEl) {
+        _traceEl.remove();
+        _traceEl = null;
+    }
+    _traceRemaining = 0;
+}
+
+function updateTraceDisplay() {
+    if (!_traceEl) return;
+    const secs = Math.max(0, Math.ceil(_traceRemaining / 1000));
+    _traceEl.textContent = `TRACE: ${secs}S`;
+    _traceEl.style.color = secs <= 10 ? 'red' : secs <= 30 ? 'orange' : 'white';
+}
+
+async function traceTriggered() {
+    printBlank();
+    print('⚠ TRACE COMPLETE. YOU HAVE BEEN LOCATED.');
+    printBlank();
+    print('INITIATING EMERGENCY NODE TRANSFER...');
+    printBlank();
+    print('TYPE: TRANSFER [DESTINATION IP] TO SAVE YOUR NODE.');
+    print('YOU HAVE 30 SECONDS.');
+    printBlank();
+
+    // fail the active contract
+    if (_activeContract) await failContract();
+
+    // give player 30 seconds to transfer
+    let countdown = 15;
+    const countdownInterval = setInterval(() => {
+        countdown--;
+        if (countdown <= 0) {
+            clearInterval(countdownInterval);
+            transferFailed();
+        }
+    }, 1000);
+
+    // override commands to only allow TRANSFER
+    for (const key of Object.keys(commands)) delete commands[key];
+    commands.transfer = async (args) => {
+        clearInterval(countdownInterval);
+        await cmdTransfer(args, true);
+    };
+}
+
+async function cmdTransfer(args, fromTrace = false) {
+    const dest = args[0];
+    if (!dest) {
+        print('USAGE: TRANSFER [DESTINATION IP]');
+        return;
+    }
+
+    printBlank();
+    await typeLine('COMPRESSING NODE FILES');
+    await typeLine('ENCRYPTING PAYLOAD');
+    await typeLine(`TRANSMITTING TO ${dest}`);
+    printBlank();
+    print('NODE TRANSFER COMPLETE. SESSION TERMINATING.');
+    printBlank();
+
+    connectedTo = null;
+    setTargetMode(false);
+
+    await new Promise(r => setTimeout(r, 2000));
+    window.location.reload();
+}
+
+async function transferFailed() {
+    printBlank();
+    print('TRANSFER WINDOW EXPIRED. NODE COMPROMISED.');
+    printBlank();
+    await typeLine('BURNING SESSION DATA');
+    await typeLine('COLLAPSING RELAY NODE');
+    printBlank();
+    print('SAVE DATA DELETED. SESSION TERMINATED.');
+    printBlank();
+
+    // delete account from DB
+    await apiDeleteAccount(player.password, player.password);
+
+    await new Promise(r => setTimeout(r, 3000));
+    window.location.reload();
 }
