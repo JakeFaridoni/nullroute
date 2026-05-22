@@ -601,7 +601,7 @@ async function printOperatorBoard() {
         const clearance = `TIER ${op.clearance}`.padEnd(12);
         const balance = `${Number(op.balance).toLocaleString()} CR`;
 
-        print(`  ${'...'.padStart(6)}`);
+        print(`  ${'...'.padEnd(6)}${'...'.padEnd(16)}${'...'.padEnd(12)}${'...'.padEnd(12)}`);
         printBlank();
         printBlank();
         print('  YOUR RANKING:');
