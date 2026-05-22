@@ -578,9 +578,9 @@ async function printOperatorBoard() {
     printBlank();
 
     // Print the first 10 operators
-    for (let opCount = 0; opCount < 10; opCount++) {
-        const op = result.operators[opCount];
-        const rank = `#${opCount + 1}`.padEnd(6);
+    const top10 = result.operators.slice(0, 10);
+    for (const [i, op] of top10.entries()) {
+        const rank = `#${i + 1}`.padEnd(6);
         const handle = op.handle.padEnd(16);
         const id = op.id.padEnd(12);
         const clearance = `TIER ${op.clearance}`.padEnd(12);
@@ -590,20 +590,24 @@ async function printOperatorBoard() {
         print(`  ${rank}${handle}${id}${clearance}${balance}${marker}`);
         printBlank();
     }
-    print('...');
-    printBlank();
 
-    // Print the current players stats
-    const currentOp = result.operators.some(op => op.handle === player.handle);
-    const rank = `#${result.operators.findIndex(op => op.handle = currentOp.handle) + 1}`.padEnd(6);
-    const handle = currentOp.handle.padEnd(16);
-    const id = currentOp.id.padEnd(12);
-    const clearance = `TIER ${currentOp.clearance}`.padEnd(12);
-    const balance = `${Number(currentOp.balance).toLocaleString()} CR`;
+    // Print current player's ranking if outside top 10
+    const playerIndex = result.operators.findIndex(op => op.handle === player.handle);
+    if (playerIndex >= 10) {
+        const op = result.operators[playerIndex];
+        const rank = `#${playerIndex + 1}`.padEnd(6);
+        const handle = op.handle.padEnd(16);
+        const id = op.id.padEnd(12);
+        const clearance = `TIER ${op.clearance}`.padEnd(12);
+        const balance = `${Number(op.balance).toLocaleString()} CR`;
 
-    print('  YOUR RANKING:');
-    print(`  ${rank}${handle}${id}${clearance}${balance}`);
-    printBlank();
+        print('  ...');
+        printBlank();
+        print('  YOUR RANKING:');
+        printBlank();
+        print(`  ${rank}${handle}${id}${clearance}${balance}`);
+        printBlank();
+    }
 
     // [ DEPRECATED ]
     // result.operators.forEach((op, i) => {
@@ -999,15 +1003,15 @@ function setStockMarketMode(active) {
 
 // ── HACKING SYSTEM ────────────────────────────────────────────────────────────
 
-let _connectedIp      = null;   // IP of the currently connected target
-let _connectedTarget  = null;   // full target object from sessionTargets
-let _loggedIn         = false;  // whether player has logged in to the target
-let _traceInterval    = null;   // setInterval handle for trace countdown
-let _traceRemaining   = 0;      // ms remaining on trace buffer
-let _traceEl          = null;   // status bar element for trace display
-let _activeContract   = null;   // contract being worked on this session
-let _loginPasswordEl  = null;   // the password field pre element
-let _crackedPassword  = null;   // password revealed by passCrack
+let _connectedIp = null;   // IP of the currently connected target
+let _connectedTarget = null;   // full target object from sessionTargets
+let _loggedIn = false;  // whether player has logged in to the target
+let _traceInterval = null;   // setInterval handle for trace countdown
+let _traceRemaining = 0;      // ms remaining on trace buffer
+let _traceEl = null;   // status bar element for trace display
+let _activeContract = null;   // contract being worked on this session
+let _loginPasswordEl = null;   // the password field pre element
+let _crackedPassword = null;   // password revealed by passCrack
 
 // Words for passCrack — pooled by length
 const CRACK_WORDS = {
@@ -1022,8 +1026,8 @@ const CRACK_WORDS = {
 function getWordForDifficulty(difficulty) {
     // difficulty 1-2 → 3-4 chars, 3-4 → 4-5, 5-6 → 5-6, 7-8 → 6-7, 9 → 8
     const lengthMap = { 1: 3, 2: 3, 3: 4, 4: 4, 5: 5, 6: 5, 7: 6, 8: 7, 9: 8 };
-    const len   = lengthMap[difficulty] ?? 5;
-    const pool  = CRACK_WORDS[len] ?? CRACK_WORDS[5];
+    const len = lengthMap[difficulty] ?? 5;
+    const pool = CRACK_WORDS[len] ?? CRACK_WORDS[5];
     return pool[Math.floor(Math.random() * pool.length)];
 }
 
@@ -1047,10 +1051,10 @@ async function connectToTarget(ip) {
         return;
     }
 
-    connectedTo      = ip;
-    _connectedIp     = ip;
+    connectedTo = ip;
+    _connectedIp = ip;
     _connectedTarget = target;
-    _loggedIn        = false;
+    _loggedIn = false;
     _crackedPassword = null;
 
     // find matching accepted contract for this target
@@ -1117,11 +1121,11 @@ function setTargetMode(active) {
         _fullTargetCommands = { ...commands };
         for (const key of Object.keys(commands)) delete commands[key];
 
-        commands.disconnect  = cmdDisconnect;
-        commands.exit        = cmdExit;
-        commands.passcrack   = cmdPassCrack;
-        commands.login       = cmdLogin;
-        commands.portscan    = cmdPortScan;
+        commands.disconnect = cmdDisconnect;
+        commands.exit = cmdExit;
+        commands.passcrack = cmdPassCrack;
+        commands.login = cmdLogin;
+        commands.portscan = cmdPortScan;
     } else {
         if (_fullTargetCommands) {
             for (const key of Object.keys(commands)) delete commands[key];
@@ -1129,12 +1133,12 @@ function setTargetMode(active) {
             _fullTargetCommands = null;
         }
         stopTrace();
-        _connectedIp      = null;
-        _connectedTarget  = null;
-        _loggedIn         = false;
-        _crackedPassword  = null;
-        _activeContract   = null;
-        _loginPasswordEl  = null;
+        _connectedIp = null;
+        _connectedTarget = null;
+        _loggedIn = false;
+        _crackedPassword = null;
+        _activeContract = null;
+        _loginPasswordEl = null;
     }
 }
 
@@ -1143,17 +1147,17 @@ function setLoggedInCommands() {
     delete commands.passcrack;
     delete commands.login;
 
-    commands.ls    = cmdLs;
-    commands.rm    = cmdRm;
+    commands.ls = cmdLs;
+    commands.rm = cmdRm;
     commands.exfil = cmdExfil;
     commands.plant = cmdPlant;
 }
 
 // ── PASSCRACK MINIGAME ────────────────────────────────
 
-let _crackWord       = null;
-let _crackScrambled  = null;
-let _crackAttempts   = 0;
+let _crackWord = null;
+let _crackScrambled = null;
+let _crackAttempts = 0;
 
 async function cmdPassCrack() {
     if (_loggedIn) {
@@ -1169,9 +1173,9 @@ async function cmdPassCrack() {
 
     const difficulty = _connectedTarget.difficulty;
     const passCrackTool = player.tools.indexOf(tool => tool.name === 'passCrack');
-    _crackWord      = getWordForDifficulty(difficulty);
+    _crackWord = getWordForDifficulty(difficulty);
     _crackScrambled = scrambleWord(_crackWord);
-    _crackAttempts  = 0;
+    _crackAttempts = 0;
 
     printBlank();
     print(`PASSCRACK ${passCrackTool.level} INITIALISING...`);
@@ -1201,7 +1205,7 @@ async function executeWithCrack(cmd, args) {
         _crackAttempts++;
 
         if (attempt === _crackWord) {
-            _crackMode       = false;
+            _crackMode = false;
             _crackedPassword = _crackWord;
 
             printBlank();
@@ -1292,28 +1296,28 @@ cmdPortScan.description = 'SCAN A TARGET FOR OPEN PORTS.';
 
 function generatePorts(target) {
     const always = [
-        { port: 22,   state: 'OPEN',   service: 'SSH' },
-        { port: 80,   state: 'OPEN',   service: 'HTTP' },
-        { port: 443,  state: 'OPEN',   service: 'HTTPS' },
+        { port: 22, state: 'OPEN', service: 'SSH' },
+        { port: 80, state: 'OPEN', service: 'HTTP' },
+        { port: 443, state: 'OPEN', service: 'HTTPS' },
     ];
 
     const optional = [
-        { port: 21,   state: 'OPEN',   service: 'FTP' },
-        { port: 23,   state: 'OPEN',   service: 'TELNET' },
-        { port: 25,   state: 'OPEN',   service: 'SMTP' },
-        { port: 3306, state: 'OPEN',   service: 'MYSQL' },
-        { port: 5432, state: 'OPEN',   service: 'POSTGRES' },
+        { port: 21, state: 'OPEN', service: 'FTP' },
+        { port: 23, state: 'OPEN', service: 'TELNET' },
+        { port: 25, state: 'OPEN', service: 'SMTP' },
+        { port: 3306, state: 'OPEN', service: 'MYSQL' },
+        { port: 5432, state: 'OPEN', service: 'POSTGRES' },
     ];
 
     const closed = [
-        { port: 445,  state: 'CLOSED', service: 'SMB' },
+        { port: 445, state: 'CLOSED', service: 'SMB' },
         { port: 3389, state: 'CLOSED', service: 'RDP' },
-        { port: 53,   state: 'CLOSED', service: 'DNS' },
+        { port: 53, state: 'CLOSED', service: 'DNS' },
     ];
 
     // more open ports on easier targets
     const openCount = Math.max(0, 4 - Math.floor(target.difficulty / 3));
-    const picked    = optional.sort(() => Math.random() - 0.5).slice(0, openCount);
+    const picked = optional.sort(() => Math.random() - 0.5).slice(0, openCount);
 
     return [...always, ...picked, ...closed].sort((a, b) => a.port - b.port);
 }
@@ -1321,7 +1325,7 @@ function generatePorts(target) {
 // ── SERVER COMMANDS ───────────────────────────────────
 
 async function cmdLs() {
-    if (!_loggedIn) return; 
+    if (!_loggedIn) return;
     if (!_connectedTarget) return;
 
     const files = _activeContract?.fileSystem ?? [];
@@ -1348,7 +1352,7 @@ async function cmdLs() {
 cmdLs.description = 'LIST FILES ON THE TARGET SYSTEM.';
 
 async function cmdRm(args) {
-    if (!_loggedIn) return; 
+    if (!_loggedIn) return;
 
     const file = args[0]?.toUpperCase();
     if (!file) { print('USAGE: RM [FILE]'); return; }
@@ -1367,7 +1371,7 @@ async function cmdRm(args) {
     }
 
     const isSabotage = _activeContract.objective === 'SABOTAGE' && file === _activeContract.objectiveFile?.toUpperCase();
-    const isDestroy  = _activeContract.objective === 'DESTROY';
+    const isDestroy = _activeContract.objective === 'DESTROY';
 
     _activeContract.fileSystem.splice(idx, 1);
 
@@ -1387,7 +1391,7 @@ async function cmdRm(args) {
 cmdRm.description = 'DELETE A FILE ON THE TARGET SYSTEM.';
 
 async function cmdExfil(args) {
-    if (!_loggedIn) return; 
+    if (!_loggedIn) return;
 
     const file = args[0]?.toUpperCase();
     const dest = args[1];
@@ -1420,7 +1424,7 @@ async function cmdExfil(args) {
 cmdExfil.description = 'EXFILTRATE A FILE TO A DESTINATION.';
 
 async function cmdPlant(args) {
-    if (!_loggedIn) return; 
+    if (!_loggedIn) return;
 
     const file = args[0]?.toUpperCase();
     if (!file) { print('USAGE: PLANT [FILE]'); return; }
@@ -1494,7 +1498,7 @@ async function failContract() {
     const inboxContract = player.inbox.find(c => c.id === _activeContract.id);
     if (inboxContract) inboxContract.status = 'FAILED';
 
-    player.clearance   = result.clearance;
+    player.clearance = result.clearance;
     player.failedContracts = result.failCount;
 
     document.getElementById('status-clearance').textContent = `CLEAR: TIER ${player.clearance}`;
