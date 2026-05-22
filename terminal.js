@@ -601,7 +601,8 @@ async function printOperatorBoard() {
         const clearance = `TIER ${op.clearance}`.padEnd(12);
         const balance = `${Number(op.balance).toLocaleString()} CR`;
 
-        print('  ...');
+        print(`  ${'...'.padStart(6)}`);
+        printBlank();
         printBlank();
         print('  YOUR RANKING:');
         printBlank();
@@ -609,19 +610,7 @@ async function printOperatorBoard() {
         printBlank();
     }
 
-    // [ DEPRECATED ]
-    // result.operators.forEach((op, i) => {
-    //     const rank = `#${i + 1}`.padEnd(6);
-    //     const handle = op.handle.padEnd(16);
-    //     const id = op.id.padEnd(12);
-    //     const clearance = `TIER ${op.clearance}`.padEnd(12);
-    //     const balance = `${Number(op.balance).toLocaleString()} CR`;
-    //     const marker = op.handle === player.handle ? ' ◄' : '';
-
-    //     print(`  ${rank}${handle}${id}${clearance}${balance}${marker}`);
-    //     printBlank();
-    // });
-
+    printBlank();
     print('  BACK    RETURN TO MENU');
     printBlank();
 }
