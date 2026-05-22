@@ -1,4 +1,4 @@
-import { player } from "./user-creation";
+import { player } from "./user-creation.js";
 
 // --- INTRO -----------
 // Sent on user creation

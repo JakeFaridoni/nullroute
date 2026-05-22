@@ -578,7 +578,7 @@ async function printOperatorBoard() {
     printBlank();
 
     // Print the first 10 operators
-    for (opCount = 0; opCount < 10; opCount++) {
+    for (let opCount = 0; opCount < 10; opCount++) {
         const op = result.operators[opCount];
         const rank = `#${opCount + 1}`.padEnd(6);
         const handle = op.handle.padEnd(16);
