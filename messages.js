@@ -19,7 +19,7 @@ export const welcome = {
         '',
         'GOOD LUCK.',
         '',
-        '- NIX',
+        '- SPY',
     ],
 };
 
