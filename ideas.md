@@ -161,3 +161,6 @@ Game modes:
     > Loss: Lose all balance to winning player (safety net of 500 CR)
 
 
+## Factions
+
+Player made factions that can be made/joined by anyone
