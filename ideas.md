@@ -1,6 +1,6 @@
 # Ideas
 
-Ideas to implement (eventually).
+Ideas to implement (maybe eventually).
 
 ---
 
@@ -20,11 +20,6 @@ Admin/GM specific UI for world events and global messages.
 Accessed through a specific log in or separate page?
 - [ ] ~~Specific Log in~~
 - [x] Separate Page
-
-How to Access:
-1. DOMAIN/admin
-2. Log in w/ admin credentials
-3. Voila
 
 ### Content:
 
@@ -131,6 +126,7 @@ Players have new command list for multiplayer:
 
 9. UNHIDE
     > Used after hiding to unhide
+    > USE: UNHIDE
 
 How to Access:
 1. Connect to NULLROUTE
@@ -148,13 +144,13 @@ Game modes:
     > Win: Gain almost all of the losing players balance (Losing players bal - 500 CR)\
     > Loss: Lose all balance to winning player (safety net of 500 CR)
 
-3. Team CTF (Both play offense and defense) ?
+3. Team CTF (Both play offense and defense)
     > 2 teams\
     > One player on each team plays offense, one plays defense\
     > Win: Set increase to balance\
     > Loss: No effect
 
-4. High-risk Team CTF (Both play offense and defense) ?
+4. High-risk Team CTF (Both play offense and defense)
     > 2 teams\
     > One player on each team plays offense, one plays defense\
     > Win: Gain almost all of the losing players balance (Losing players bal - 500 CR)\
@@ -163,4 +159,52 @@ Game modes:
 
 ## Factions
 
-Player made factions that can be made/joined by anyone
+Player made factions that can be made/joined by others
+
+### Properties
+
+Every faction will have:
+
+- Faction name
+- Members
+- Influence meter
+
+### Influence meter
+
+The influence meter will give upgrades to a fation once a certain influence level has been hit.\
+The meter starts at stage 0 and has four milestones.
+
+Influence Milestones:
+
+0. Stage 0:
+    - Member Count: 10
+
+1. Stage 1:
+    - Member Count: 20
+    - Faction Chat
+
+2. Stage 2:
+    - Member Count: 30
+    - Faction Chat
+    - Crypto Pool
+
+3. Stage 3:
+    - Member Count: 40
+    - Faction Chat
+    - Crypto Pool
+    - Module Store
+
+4. Stage 4:
+    - Member Count: 50
+    - Faaction Chat
+    - Crypto Pool
+    - Module Store
+    - Faction Server
+
+## Node Modules
+
+Player made upgrades to be installed on the players node
+
+## Crypto
+
+Crypto to be mined for special upgrades to nodes
