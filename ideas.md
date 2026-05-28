@@ -196,15 +196,107 @@ Influence Milestones:
 
 4. Stage 4:
     - Member Count: 50
-    - Faaction Chat
+    - Faction Chat
     - Crypto Pool
     - Module Store
     - Faction Server
 
+## Power & Facilities
+
+
+### Power
+
+Player facilities (node, fabricator, individual mining rigs) use power.\
+Power is supplied via generators and can be optimized using modules.
+
+If a player does not have sufficient power to run a facility, they cannot use it even if it is purchased.
+
+### Facilities
+
+Facilities (node, fabricator, mining rig manager) can be interacted with by the player.\
+Each facility has its own screen seperate from the node (not interacted with through the CLI).
+
+Facilities should be accessed either through the CLI via command\
+OR\
+A facility manager panel replacing the current IP tracker panel.
+
 ## Node Modules
 
-Player made upgrades to be installed on the players node
+Player made upgrades to be installed on the players node.
+
+### Fabricator
+
+A fabricator is required to be able to make modules.\
+A fabricator can be purchased from NULLROUTE with two purchase plans:
+- Renting
+    > Pay a daily fee\
+    > Can be upgraded to lifetime usage for slightly lower cost than the lifetime purchase
+- Lifetime Purchase
+    > Pay only once, own forever
+
+A player can only own one fabricator.
+
+Starting a fabricator will move the player to the fabricator home screen containing:
+- Available Materials
+- Access to Material Shop Page
+- Access to Schematics Shop Page
+- Module Schematics list (sorted by quality/type)
+- Exit Back to Node
+
+### Module Schematics
+
+Page of available schematics for creating modules.
+
+4 types:
+- Cooling
+    > Increases CPU performance
+- Power
+    > (NOT IMPLEMENTED)
+- Performance
+    > Decreases ram usage
+- Security
+    > Increases trace buffer
+
+### Module Creation
+
+After picking a schematic, the player assigns the materials to the module.\
+Materials affect the quality of the module: better materials provide a higher performance/score boost for the minigame.
+
+A minigame is played to create the module.\
+The minigame shows the module being made in the fabricator in the game's style.\
+Minigame varries by module type (minigames TBD).
+
+After completing the minigame, the module is created and assigned a quality based on the player's performance during the game.\
+5 qualities:
+- Paperweight
+    > Not usable - can only be scrapped
+- Junk
+    > Lowest usable tier - small increases to stats
+- Mid-Range
+    > Average tier - average increases to stats
+- High-End
+    > One of the best tiers - high increases to stats
+- High-End++
+    > Best tier - highest increases to stats + special perk (random)
+
+### Scrapping
+
+Scrapping a module destroys it but returns a portion of the materials back, lower quality modules give lower quality materials.
+
 
 ## Crypto
 
-Crypto to be mined for special upgrades to nodes
+Crypto to be mined for special purchases.
+
+### Mining
+
+Player can purchase the Crypto Mining Manager (CMM) software.
+The CMM allows the player to:
+- Manage Mining Rigs
+    - Status
+    - Production
+    - Performance
+- Purchase Mining Rigs
+- Sell Mining Rigs
+- Upgrade Mining Rigs
+- Exit Back to Node
