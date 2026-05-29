@@ -299,4 +299,9 @@ The CMM allows the player to:
 - Purchase Mining Rigs
 - Sell Mining Rigs
 - Upgrade Mining Rigs
+    - Speed
+    - Production
+    - Value
 - Exit Back to Node
+
+CMM should have a visual representation of the mining rigs and schtuff as well
