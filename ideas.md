@@ -304,4 +304,5 @@ The CMM allows the player to:
     - Value
 - Exit Back to Node
 
-CMM should have a visual representation of the mining rigs and schtuff as well
+CMM should have a visual representation of the mining rigs and their status/production.\
+Performance should be accessed by selecting a specific rig.
