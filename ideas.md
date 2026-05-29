@@ -288,7 +288,7 @@ Scrapping a module destroys it but returns a portion of the materials back, lowe
 
 Crypto to be mined for special purchases.
 
-### Mining
+### Crypto Mining Manager
 
 Player can purchase the Crypto Mining Manager (CMM) software.
 The CMM allows the player to:
