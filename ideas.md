@@ -305,4 +305,15 @@ The CMM allows the player to:
 - Exit Back to Node
 
 CMM should have a visual representation of the mining rigs and their status/production.\
-Performance should be accessed by selecting a specific rig.
+Performance should be accessed by selecting a specific rig which will then be focused (zoom, highlight, etc).
+
+### Purchases
+
+The player uses crypto to purchase upgrades.
+
+Ugrades:
+- Nodes
+    > Better nodes with more cpu slots and ram slots
+- Node Modules
+    > Bought through a faction's Module Store
+- third option here
