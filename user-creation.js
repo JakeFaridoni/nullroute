@@ -1,6 +1,6 @@
 import { beepSound, bootSequence, clackSound, messageSound } from '../boot/boot.js';
 import { tickSound, playSound } from '../boot/boot.js';
-import { apiSaveGame, apiLogin, apiHandleExists, apiRegister, apiLoadSave } from '../api.js';
+import { apiSaveGame, apiLogin, apiHandleExists, apiRegister } from '../api.js';
 import { globalCompanies, localCompanies, flattenCompanies, assignIps } from './companies.js';
 import { render } from '../inbox.js';
 import { BGM } from '../main.js';

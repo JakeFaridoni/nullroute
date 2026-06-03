@@ -316,4 +316,11 @@ Ugrades:
     > Better nodes with more cpu slots and ram slots
 - Node Modules
     > Bought through a faction's Module Store
-- third option here
+
+## Overhaul Connections
+
+Simulate real life connections.\
+Protocals, simulated packets, moving packets to/from places, the whole sha-bang.
+
+Itll be easy I swear!!\
+Just trust me vro... 😁😁😁👍👍😘❤️💕

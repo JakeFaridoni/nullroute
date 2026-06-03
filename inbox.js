@@ -46,7 +46,7 @@ export function render() {
             const row = document.createElement('pre');
             row.className = 'inbox-row' + (isSelected ? ' inbox-selected' : '');
 
-            const label = item.type === 'message' || item.type === 'story-contract' || item.type === 'nix-message'
+            const label = item.type === 'message' || item.type === 'story-contract'
                 ? item.title
                 : item.id;
 
@@ -78,7 +78,7 @@ export function render() {
     // title bar
     const titleBar = document.createElement('pre');
     titleBar.id = 'inbox-detail-title';
-    titleBar.textContent = selected.type === 'message' || selected.type === 'story-contract' || selected.type === 'nix-message'
+    titleBar.textContent = selected.type === 'message' || selected.type === 'story-contract'
         ? selected.title
         : selected.id;
     detail.appendChild(titleBar);
@@ -92,7 +92,7 @@ export function render() {
     body.id = 'inbox-detail-body';
     detail.appendChild(body);
 
-    if (selected.type === 'message' || selected.type === 'story-contract' || selected.type === 'nix-message') {
+    if (selected.type === 'message' || selected.type === 'story-contract') {
         renderMessage(selected, body);
     } else {
         renderContract(selected, body);
